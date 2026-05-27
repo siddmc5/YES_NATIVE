@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import '../theme.dart';
+import '../theme_provider.dart';
 import 'main_shell.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -10,8 +12,40 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStateMixin {
   bool _isLoading = false;
+  late final AnimationController _animController;
+  late final Animation<Offset> _slideAnim;
+  late final Animation<double> _fadeAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    _slideAnim = Tween<Offset>(
+      begin: const Offset(0, 0.06),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _animController,
+      curve: Curves.easeOutCubic,
+    ));
+    _fadeAnim = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(
+        parent: _animController,
+        curve: const Interval(0, 0.5, curve: Curves.easeOut),
+      ),
+    );
+    _animController.forward();
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    super.dispose();
+  }
 
   void _login() async {
     setState(() => _isLoading = true);
@@ -25,175 +59,149 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+    final isDark = context.watch<ThemeProvider>().isDarkMode;
+
     return Scaffold(
-      backgroundColor: AppColors.bannerGreen,
+      backgroundColor: colors.bannerGreen,
       body: Column(
         children: [
           // Green Header Section
           Container(
-            color: AppColors.bannerGreen,
+            color: colors.bannerGreen,
             width: double.infinity,
             child: SafeArea(
               bottom: false,
-              child: Column(
-                children: [
-                  const SizedBox(height: 48),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
+              child: FadeTransition(
+                opacity: _fadeAnim,
+                child: SlideTransition(
+                  position: _slideAnim,
+                  child: Column(
                     children: [
-                      CustomPaint(
-                        size: const Size(72, 72),
-                        painter: _LeafLogoPainter(),
+                      const SizedBox(height: 40),
+                      Image.asset(
+                        'assets/images/logo.png',
+                        width: 220,
+                        height: 220,
+                        fit: BoxFit.contain,
                       ),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                'Yes',
-                                style: GoogleFonts.caveat(
-                                  fontSize: 54,
-                                  fontWeight: FontWeight.w400,
-                                  color: Colors.white,
-                                  height: 0.9,
-                                ),
-                              ),
-                              Text(
-                                'Native',
-                                style: GoogleFonts.caveat(
-                                  fontSize: 54,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.white,
-                                  height: 0.9,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            '" Where Tradition Meets Wellness "',
-                            style: GoogleFonts.poppins(
-                              fontSize: 10,
-                              fontStyle: FontStyle.italic,
-                              color: Colors.white.withOpacity(0.9),
-                              letterSpacing: 0.25,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Container(
-                            height: 1.2,
-                            width: 188,
-                            color: Colors.white.withOpacity(0.85),
-                          ),
-                        ],
+                      const SizedBox(height: 32),
+                      Text(
+                        'Functional Superfoods',
+                        style: GoogleFonts.poppins(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.white.withOpacity(0.95),
+                          letterSpacing: 2.2,
+                        ),
                       ),
+                      const SizedBox(height: 36),
                     ],
                   ),
-                  const SizedBox(height: 40),
-                  Text(
-                    'Functional Superfoods',
-                    style: GoogleFonts.poppins(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.white.withOpacity(0.95),
-                      letterSpacing: 2.2,
-                    ),
-                  ),
-                  const SizedBox(height: 42),
-                ],
+                ),
               ),
             ),
           ),
 
-          // White Card Section
+          // Card Section
           Expanded(
-            child: Container(
-              width: double.infinity,
-              decoration: const BoxDecoration(
-                color: AppColors.background,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(36),
-                  topRight: Radius.circular(36),
-                ),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 56),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Welcome',
-                    style: GoogleFonts.poppins(
-                      fontSize: 35,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.primary,
+            child: FadeTransition(
+              opacity: _fadeAnim,
+              child: SlideTransition(
+                position: _slideAnim,
+                child: Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF1A1A1A) : colors.background,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(36),
+                      topRight: Radius.circular(36),
                     ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Sign in to manage your orders and profile',
-                    style: GoogleFonts.poppins(
-                      fontSize: 14.5,
-                      fontWeight: FontWeight.w400,
-                      color: AppColors.textMedium,
-                    ),
-                  ),
-                  const SizedBox(height: 64),
-
-                  // Google Sign-In Button
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton(
-                      onPressed: _isLoading ? null : _login,
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        side: const BorderSide(
-                          color: AppColors.border,
-                          width: 1.2,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        backgroundColor: Colors.white,
-                        elevation: 0,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.06),
+                        blurRadius: 20,
+                        offset: const Offset(0, -4),
                       ),
-                      child: _isLoading
-                          ? const SizedBox(
-                              height: 24,
-                              width: 24,
-                              child: CircularProgressIndicator(
-                                color: AppColors.primary,
-                                strokeWidth: 2,
-                              ),
-                            )
-                          : Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                SizedBox(
-                                  width: 22,
-                                  height: 22,
-                                  child: CustomPaint(
-                                    painter: _GoogleLogoPainter(),
-                                  ),
-                                ),
-                                const SizedBox(width: 14),
-                                Text(
-                                  'Continue with Google',
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.textDark,
-                                  ),
-                                ),
-                              ],
-                            ),
-                    ),
+                    ],
                   ),
-                ],
+                  padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 48),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Spacer(flex: 1),
+                      Text(
+                        'Welcome',
+                        style: GoogleFonts.poppins(
+                          fontSize: 35,
+                          fontWeight: FontWeight.w700,
+                          color: colors.primary,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Sign in to manage your orders and profile',
+                        style: GoogleFonts.poppins(
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w400,
+                          color: colors.textMedium,
+                        ),
+                      ),
+                      const Spacer(flex: 2),
+
+                      // Google Sign-In Button
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton(
+                          onPressed: _isLoading ? null : _login,
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            side: BorderSide(
+                              color: colors.border,
+                              width: 1.2,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            backgroundColor: colors.cardBackground,
+                            elevation: 0,
+                          ),
+                          child: _isLoading
+                              ? SizedBox(
+                                  height: 24,
+                                  width: 24,
+                                  child: CircularProgressIndicator(
+                                    color: colors.primary,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    SizedBox(
+                                      width: 22,
+                                      height: 22,
+                                      child: CustomPaint(
+                                        painter: _GoogleLogoPainter(),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 14),
+                                    Text(
+                                      'Continue with Google',
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                        color: colors.textDark,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                        ),
+                      ),
+                      const Spacer(flex: 1),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
@@ -260,85 +268,6 @@ class _GoogleLogoPainter extends CustomPainter {
       ..cubicTo(21.57 * s, 18.41 * s, 23.0 * s, 15.42 * s, 23.0 * s, 12.0 * s)
       ..close();
     canvas.drawPath(bluePath, paint..color = const Color(0xFF4285F4));
-  }
-
-  @override
-  bool shouldRepaint(_) => false;
-}
-
-// ── Leaf Logo Painter ────────────────────────────────────────────────────────
-
-class _LeafLogoPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final w = size.width;
-    final h = size.height;
-
-    // Back-right leaf (most transparent)
-    final leaf3 = Path();
-    leaf3.moveTo(w * 0.60, h * 0.88);
-    leaf3.cubicTo(w * 0.30, h * 0.72, w * 0.28, h * 0.35, w * 0.52, h * 0.12);
-    leaf3.cubicTo(w * 0.72, h * 0.00, w * 0.92, h * 0.18, w * 0.88, h * 0.50);
-    leaf3.cubicTo(w * 0.84, h * 0.72, w * 0.72, h * 0.85, w * 0.60, h * 0.88);
-    leaf3.close();
-    canvas.drawPath(leaf3, Paint()..color = Colors.white.withOpacity(0.28));
-
-    // Back-left vein
-    canvas.drawPath(
-      Path()
-        ..moveTo(w * 0.60, h * 0.88)
-        ..cubicTo(w * 0.58, h * 0.58, w * 0.60, h * 0.34, w * 0.66, h * 0.08),
-      Paint()
-        ..color = AppColors.primaryDark.withOpacity(0.15)
-        ..strokeWidth = 1.2
-        ..style = PaintingStyle.stroke
-        ..strokeCap = StrokeCap.round,
-    );
-
-    // Middle leaf (semi-transparent)
-    final leaf2 = Path();
-    leaf2.moveTo(w * 0.48, h * 0.92);
-    leaf2.cubicTo(w * 0.12, h * 0.76, w * 0.08, h * 0.36, w * 0.36, h * 0.12);
-    leaf2.cubicTo(w * 0.56, h * 0.00, w * 0.80, h * 0.18, w * 0.75, h * 0.50);
-    leaf2.cubicTo(w * 0.70, h * 0.72, w * 0.58, h * 0.88, w * 0.48, h * 0.92);
-    leaf2.close();
-    canvas.drawPath(leaf2, Paint()..color = Colors.white.withOpacity(0.55));
-
-    // Middle vein
-    canvas.drawPath(
-      Path()
-        ..moveTo(w * 0.48, h * 0.92)
-        ..cubicTo(w * 0.44, h * 0.62, w * 0.44, h * 0.36, w * 0.50, h * 0.08),
-      Paint()
-        ..color = AppColors.primaryDark.withOpacity(0.18)
-        ..strokeWidth = 1.3
-        ..style = PaintingStyle.stroke
-        ..strokeCap = StrokeCap.round,
-    );
-
-    // Front leaf (fully opaque)
-    final frontLeaf = Path();
-    frontLeaf.moveTo(w * 0.38, h * 0.94);
-    frontLeaf.cubicTo(
-        w * 0.04, h * 0.78, w * 0.00, h * 0.38, w * 0.26, h * 0.14);
-    frontLeaf.cubicTo(
-        w * 0.46, h * 0.00, w * 0.72, h * 0.16, w * 0.66, h * 0.50);
-    frontLeaf.cubicTo(
-        w * 0.60, h * 0.74, w * 0.50, h * 0.90, w * 0.38, h * 0.94);
-    frontLeaf.close();
-    canvas.drawPath(frontLeaf, Paint()..color = Colors.white);
-
-    // Front vein
-    canvas.drawPath(
-      Path()
-        ..moveTo(w * 0.38, h * 0.94)
-        ..cubicTo(w * 0.34, h * 0.64, w * 0.36, h * 0.38, w * 0.42, h * 0.10),
-      Paint()
-        ..color = AppColors.primaryDark.withOpacity(0.28)
-        ..strokeWidth = 1.6
-        ..style = PaintingStyle.stroke
-        ..strokeCap = StrokeCap.round,
-    );
   }
 
   @override

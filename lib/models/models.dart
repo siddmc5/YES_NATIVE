@@ -116,6 +116,7 @@ class SampleData {
       reviews: 124,
       tags: ['Low Glycemic Index', 'High Dietary Fiber'],
       isActive: true,
+      imageUrl: 'assets/images/product_1.jpeg',
     ),
     ProductModel(
       id: '2',
@@ -127,6 +128,7 @@ class SampleData {
       reviews: 198,
       tags: ['Rich in Antioxidants', 'Kid-Friendly'],
       isActive: true,
+      imageUrl: 'assets/images/product_2.jpeg',
     ),
     ProductModel(
       id: '3',

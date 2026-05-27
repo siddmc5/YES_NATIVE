@@ -1,7 +1,7 @@
-import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
-import 'dart:html' as html;
 import 'dart:typed_data';
+import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:uuid/uuid.dart';
 import '../theme.dart';
 import '../models/models.dart';
 
@@ -13,7 +13,10 @@ class ProductsScreen extends StatefulWidget {
 }
 
 class _ProductsScreenState extends State<ProductsScreen> {
+  final _searchController = TextEditingController();
+  String _searchQuery = '';
   String _selectedCategory = 'All';
+
   final _categories = [
     'All',
     'Weight Management',
@@ -25,54 +28,115 @@ class _ProductsScreenState extends State<ProductsScreen> {
   ];
 
   List<ProductModel> get _filteredProducts {
-    if (_selectedCategory == 'All') return SampleData.products;
-    return SampleData.products
-        .where((p) => p.category == _selectedCategory)
-        .toList();
+    List<ProductModel> list = SampleData.products;
+    if (_selectedCategory != 'All') {
+      list = list.where((p) => p.category == _selectedCategory).toList();
+    }
+    if (_searchQuery.isNotEmpty) {
+      list = list
+          .where((p) =>
+              p.name.toLowerCase().contains(_searchQuery.toLowerCase()))
+          .toList();
+    }
+    return list;
   }
 
-  Future<Uint8List?> _pickImage() async {
-    final input = html.FileUploadInputElement()
-      ..accept = 'image/*'
-      ..click();
-    await input.onChange.first;
-    if (input.files!.isNotEmpty) {
-      final reader = html.FileReader();
-      reader.readAsArrayBuffer(input.files![0]);
-      await reader.onLoad.first;
-      return reader.result as Uint8List;
-    }
-    return null;
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _addProduct() async {
+    final result = await showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const _AddProductSheet(),
+    );
+
+    if (result == null || !mounted) return;
+
+    setState(() {
+      SampleData.products.insert(
+        0,
+        ProductModel(
+          id: const Uuid().v4(),
+          name: result['name'] as String,
+          category: result['category'] as String,
+          price: result['price'] as double,
+          stock: result['stock'] as int,
+          rating: 0,
+          reviews: 0,
+          tags: [],
+          isActive: true,
+          imageBytes: result['imageBytes'] as Uint8List?,
+        ),
+      );
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+    final filtered = _filteredProducts;
+
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: colors.background,
       appBar: AppBar(
         title: const Text('Products'),
-        actions: [
-          IconButton(icon: const Icon(Icons.search_rounded), onPressed: () {}),
-        ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showAddProductSheet(context),
-        backgroundColor: AppColors.primary,
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text(
-          'Add Product',
-          style: TextStyle(
-            color: Colors.white,
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _addProduct,
+        backgroundColor: colors.primary,
+        foregroundColor: Colors.white,
+        elevation: 2,
+        child: const Icon(Icons.add_rounded),
       ),
       body: Column(
         children: [
+          // Persistent search bar
+          Container(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+            color: colors.background,
+            child: TextField(
+              controller: _searchController,
+              onChanged: (v) => setState(() => _searchQuery = v),
+              decoration: InputDecoration(
+                hintText: 'Search products...',
+                prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear_rounded, size: 18),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() => _searchQuery = '');
+                        },
+                      )
+                    : null,
+                filled: true,
+                fillColor: colors.cardBackground,
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: colors.border),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: colors.border),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: colors.primary, width: 1.5),
+                ),
+              ),
+            ),
+          ),
+
           // Category filter chips
           SizedBox(
-            height: 50,
+            height: 44,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -82,15 +146,16 @@ class _ProductsScreenState extends State<ProductsScreen> {
                 final isSelected = cat == _selectedCategory;
                 return GestureDetector(
                   onTap: () => setState(() => _selectedCategory = cat),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    margin: const EdgeInsets.only(right: 8, top: 8, bottom: 8),
+                  child: Container(
+                    margin: const EdgeInsets.only(right: 8),
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     decoration: BoxDecoration(
-                      color: isSelected ? AppColors.primary : Colors.white,
+                      color: isSelected
+                          ? colors.primary
+                          : colors.cardBackground,
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: isSelected ? AppColors.primary : AppColors.border,
+                        color: isSelected ? colors.primary : colors.border,
                       ),
                     ),
                     child: Center(
@@ -99,7 +164,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
-                          color: isSelected ? Colors.white : AppColors.textMedium,
+                          color: isSelected ? Colors.white : colors.textMedium,
                           fontFamily: 'Poppins',
                         ),
                       ),
@@ -109,544 +174,360 @@ class _ProductsScreenState extends State<ProductsScreen> {
               },
             ),
           ),
+
+          // Product count
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
             child: Row(
               children: [
-                Text('${_filteredProducts.length} products',
-                    style: AppTextStyles.bodySmall),
+                Text('${filtered.length} products',
+                    style: TextStyle(color: colors.textLight, fontSize: 12, fontFamily: 'Poppins')),
               ],
             ),
           ),
+
+          // Products grid
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-              itemCount: _filteredProducts.length,
-              itemBuilder: (ctx, i) {
-                return TweenAnimationBuilder<double>(
-                  tween: Tween(begin: 0, end: 1),
-                  duration: Duration(milliseconds: 300 + (i * 60)),
-                  curve: Curves.easeOutCubic,
-                  builder: (context, val, child) => Opacity(
-                    opacity: val,
-                    child: Transform.translate(
-                      offset: Offset(0, 24 * (1 - val)),
-                      child: child,
+            child: filtered.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.search_off_rounded,
+                            size: 48, color: colors.textLight),
+                        const SizedBox(height: 12),
+                        Text('No products found',
+                            style: TextStyle(
+                                color: colors.textMedium,
+                                fontSize: 16,
+                                fontFamily: 'Poppins')),
+                      ],
                     ),
+                  )
+                : GridView.builder(
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 100),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      childAspectRatio: 0.7,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                    ),
+                    itemCount: filtered.length,
+                    itemBuilder: (ctx, i) {
+                      final product = filtered[i];
+                      return _ProductGridCard(
+                        product: product,
+                        onToggle: () => setState(() {
+                          product.isActive = !product.isActive;
+                        }),
+                        onDelete: () => setState(() {
+                          SampleData.products
+                              .removeWhere((p) => p.id == product.id);
+                        }),
+                      );
+                    },
                   ),
-                  child: _ProductCard(
-                    product: _filteredProducts[i],
-                    onEdit: () =>
-                        _showEditProductSheet(context, _filteredProducts[i]),
-                    onToggle: () => setState(() {
-                      _filteredProducts[i].isActive =
-                          !_filteredProducts[i].isActive;
-                    }),
-                    onDelete: () => setState(() {
-                      SampleData.products.removeWhere(
-                          (p) => p.id == _filteredProducts[i].id);
-                    }),
-                  ),
-                );
-              },
-            ),
           ),
         ],
       ),
     );
   }
+}
 
-  void _showAddProductSheet(BuildContext context) {
-    final nameController = TextEditingController();
-    final priceController = TextEditingController();
-    final stockController = TextEditingController();
-    final descController = TextEditingController();
-    String selectedCategory = _categories[1];
-    Uint8List? pickedImageBytes;
+// ─── Add Product Bottom Sheet ─────────────────────────────────────────────────
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setModalState) => Container(
-          height: MediaQuery.of(context).size.height * 0.92,
-          decoration: const BoxDecoration(
-            color: AppColors.background,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          padding: EdgeInsets.only(
-            left: 24,
-            right: 24,
-            top: 24,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-          ),
+class _AddProductSheet extends StatefulWidget {
+  const _AddProductSheet();
+
+  @override
+  State<_AddProductSheet> createState() => _AddProductSheetState();
+}
+
+class _AddProductSheetState extends State<_AddProductSheet> {
+  final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _priceController = TextEditingController();
+  final _stockController = TextEditingController();
+  Uint8List? _imageBytes;
+  String _selectedCategory = 'Weight Management';
+  final _categories = [
+    'Weight Management',
+    'Family Health',
+    'Kids Nutrition',
+    'Daily Energy',
+    "Women's Wellness",
+    'Natural Nourishment',
+  ];
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _priceController.dispose();
+    _stockController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 800,
+      maxHeight: 800,
+    );
+    if (picked != null) {
+      final bytes = await picked.readAsBytes();
+      if (mounted) {
+        setState(() => _imageBytes = bytes);
+      }
+    }
+  }
+
+  void _submit() {
+    if (!_formKey.currentState!.validate()) return;
+
+    final price = double.tryParse(_priceController.text.trim()) ?? 0;
+    final stock = int.tryParse(_stockController.text.trim()) ?? 0;
+
+    Navigator.of(context).pop({
+      'name': _nameController.text.trim(),
+      'category': _selectedCategory,
+      'price': price,
+      'stock': stock,
+      'imageBytes': _imageBytes,
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+
+    return Container(
+      padding: EdgeInsets.only(bottom: bottomInset),
+      decoration: BoxDecoration(
+        color: colors.cardBackground,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text('Add New Product', style: AppTextStyles.heading2),
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close_rounded),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Image picker
-                      GestureDetector(
-                        onTap: () async {
-                          final bytes = await _pickImage();
-                          if (bytes != null) {
-                            setModalState(() => pickedImageBytes = bytes);
-                          }
-                        },
-                        child: Container(
-                          height: 180,
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                              color: pickedImageBytes != null
-                                  ? AppColors.primary
-                                  : AppColors.border,
-                              width: pickedImageBytes != null ? 2 : 1,
-                            ),
-                          ),
-                          child: pickedImageBytes != null
-                              ? ClipRRect(
-                                  borderRadius: BorderRadius.circular(13),
-                                  child: Stack(
-                                    fit: StackFit.expand,
-                                    children: [
-                                      Image.memory(pickedImageBytes!,
-                                          fit: BoxFit.cover),
-                                      Positioned(
-                                        bottom: 10,
-                                        right: 10,
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 12, vertical: 6),
-                                          decoration: BoxDecoration(
-                                            color: AppColors.primary,
-                                            borderRadius:
-                                                BorderRadius.circular(20),
-                                          ),
-                                          child: const Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Icon(Icons.edit,
-                                                  color: Colors.white,
-                                                  size: 12),
-                                              SizedBox(width: 4),
-                                              Text('Change photo',
-                                                  style: TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 11,
-                                                    fontFamily: 'Poppins',
-                                                    fontWeight: FontWeight.w600,
-                                                  )),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                )
-                              : Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(16),
-                                      decoration: BoxDecoration(
-                                        color:
-                                            AppColors.primary.withOpacity(0.08),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: const Icon(
-                                        Icons.add_photo_alternate_outlined,
-                                        size: 32,
-                                        color: AppColors.primary,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 10),
-                                    const Text('Tap to upload image',
-                                        style: AppTextStyles.body),
-                                    const SizedBox(height: 4),
-                                    const Text('JPG, PNG • Opens your local files',
-                                        style: AppTextStyles.bodySmall),
-                                  ],
-                                ),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-
-                      const Text('Product Name', style: AppTextStyles.heading3),
-                      const SizedBox(height: 8),
-                      TextField(
-                        controller: nameController,
-                        decoration: const InputDecoration(
-                          hintText: 'e.g. SlimSure Lite',
-                          hintStyle: TextStyle(color: AppColors.textLight),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      const Text('Category', style: AppTextStyles.heading3),
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: AppColors.border),
-                        ),
-                        child: DropdownButton<String>(
-                          value: selectedCategory,
-                          isExpanded: true,
-                          underline: const SizedBox(),
-                          style: const TextStyle(
-                            color: AppColors.textDark,
-                            fontFamily: 'Poppins',
-                            fontSize: 14,
-                          ),
-                          items: _categories
-                              .skip(1)
-                              .map((c) =>
-                                  DropdownMenuItem(value: c, child: Text(c)))
-                              .toList(),
-                          onChanged: (val) =>
-                              setModalState(() => selectedCategory = val!),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text('Price (₹)',
-                                    style: AppTextStyles.heading3),
-                                const SizedBox(height: 8),
-                                TextField(
-                                  controller: priceController,
-                                  keyboardType: TextInputType.number,
-                                  decoration: const InputDecoration(
-                                    hintText: '0.00',
-                                    hintStyle:
-                                        TextStyle(color: AppColors.textLight),
-                                    prefixText: '₹ ',
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text('Stock Qty',
-                                    style: AppTextStyles.heading3),
-                                const SizedBox(height: 8),
-                                TextField(
-                                  controller: stockController,
-                                  keyboardType: TextInputType.number,
-                                  decoration: const InputDecoration(
-                                    hintText: '0',
-                                    hintStyle:
-                                        TextStyle(color: AppColors.textLight),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      const Text('Description', style: AppTextStyles.heading3),
-                      const SizedBox(height: 8),
-                      TextField(
-                        controller: descController,
-                        maxLines: 3,
-                        decoration: const InputDecoration(
-                          hintText: 'Describe the product benefits...',
-                          hintStyle: TextStyle(color: AppColors.textLight),
-                        ),
-                      ),
-                      const SizedBox(height: 28),
-
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            if (nameController.text.isEmpty ||
-                                priceController.text.isEmpty) return;
-                            setState(() {
-                              SampleData.products.add(ProductModel(
-                                id: DateTime.now()
-                                    .millisecondsSinceEpoch
-                                    .toString(),
-                                name: nameController.text,
-                                category: selectedCategory,
-                                price:
-                                    double.tryParse(priceController.text) ?? 0,
-                                stock:
-                                    int.tryParse(stockController.text) ?? 0,
-                                rating: 0,
-                                reviews: 0,
-                                tags: [],
-                                isActive: true,
-                                imageBytes: pickedImageBytes,
-                              ));
-                            });
-                            Navigator.pop(context);
-                          },
-                          child: const Text('Add Product'),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                    ],
+              // Handle
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: colors.border,
+                    borderRadius: BorderRadius.circular(2),
                   ),
                 ),
               ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+              const SizedBox(height: 16),
 
-  void _showEditProductSheet(BuildContext context, ProductModel product) {
-    final nameController = TextEditingController(text: product.name);
-    final priceController =
-        TextEditingController(text: product.price.toString());
-    final stockController =
-        TextEditingController(text: product.stock.toString());
-    Uint8List? pickedImageBytes = product.imageBytes;
-    String selectedCategory = product.category;
+              // Title
+              Text('Add Product',
+                  style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      color: colors.textDark,
+                      fontFamily: 'Poppins')),
+              const SizedBox(height: 20),
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setModalState) => Container(
-          height: MediaQuery.of(context).size.height * 0.88,
-          decoration: const BoxDecoration(
-            color: AppColors.background,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          padding: EdgeInsets.only(
-            left: 24,
-            right: 24,
-            top: 24,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+              // Image picker
+              GestureDetector(
+                onTap: _pickImage,
+                child: Container(
+                  width: double.infinity,
+                  height: 160,
+                  decoration: BoxDecoration(
+                    color: colors.background,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: colors.border,
+                      width: 1.5,
+                      strokeAlign: BorderSide.strokeAlignInside,
+                    ),
+                  ),
+                  child: _imageBytes != null
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(13),
+                          child: Image.memory(
+                            _imageBytes!,
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            height: 160,
+                          ),
+                        )
+                      : Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.add_photo_alternate_outlined,
+                                size: 40, color: colors.textLight),
+                            const SizedBox(height: 8),
+                            Text('Tap to add product image',
+                                style: TextStyle(
+                                    color: colors.textLight,
+                                    fontSize: 13,
+                                    fontFamily: 'Poppins')),
+                          ],
+                        ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Product name
+              TextFormField(
+                controller: _nameController,
+                decoration: InputDecoration(
+                  labelText: 'Product Name',
+                  hintText: 'e.g. SlimSure Lite',
+                  filled: true,
+                  fillColor: colors.background,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: colors.border),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: colors.border),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: colors.primary, width: 1.5),
+                  ),
+                ),
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Name is required' : null,
+              ),
+              const SizedBox(height: 14),
+
+              // Category dropdown
+              DropdownButtonFormField<String>(
+                initialValue: _selectedCategory,
+                decoration: InputDecoration(
+                  labelText: 'Category',
+                  filled: true,
+                  fillColor: colors.background,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: colors.border),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: colors.border),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: colors.primary, width: 1.5),
+                  ),
+                ),
+                items: _categories.map((cat) {
+                  return DropdownMenuItem(
+                    value: cat,
+                    child: Text(cat, style: const TextStyle(fontFamily: 'Poppins', fontSize: 14)),
+                  );
+                }).toList(),
+                onChanged: (v) {
+                  if (v != null) setState(() => _selectedCategory = v);
+                },
+              ),
+              const SizedBox(height: 14),
+
+              // Price + Stock row
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Edit Product', style: AppTextStyles.heading2),
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close_rounded),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _priceController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: 'Price (₹)',
+                        hintText: 'e.g. 449',
+                        filled: true,
+                        fillColor: colors.background,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: colors.border),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: colors.border),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide:
+                              BorderSide(color: colors.primary, width: 1.5),
+                        ),
+                      ),
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) return 'Required';
+                        final n = double.tryParse(v.trim());
+                        if (n == null || n <= 0) return 'Invalid price';
+                        return null;
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _stockController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: 'Stock',
+                        hintText: 'e.g. 100',
+                        filled: true,
+                        fillColor: colors.background,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: colors.border),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: colors.border),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide:
+                              BorderSide(color: colors.primary, width: 1.5),
+                        ),
+                      ),
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) return 'Required';
+                        final n = int.tryParse(v.trim());
+                        if (n == null || n < 0) return 'Invalid';
+                        return null;
+                      },
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Image picker
-                      GestureDetector(
-                        onTap: () async {
-                          final bytes = await _pickImage();
-                          if (bytes != null) {
-                            setModalState(() => pickedImageBytes = bytes);
-                          }
-                        },
-                        child: Container(
-                          height: 180,
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                              color: pickedImageBytes != null
-                                  ? AppColors.primary
-                                  : AppColors.border,
-                              width: pickedImageBytes != null ? 2 : 1,
-                            ),
-                          ),
-                          child: pickedImageBytes != null
-                              ? ClipRRect(
-                                  borderRadius: BorderRadius.circular(13),
-                                  child: Stack(
-                                    fit: StackFit.expand,
-                                    children: [
-                                      Image.memory(pickedImageBytes!,
-                                          fit: BoxFit.cover),
-                                      Positioned(
-                                        bottom: 10,
-                                        right: 10,
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 12, vertical: 6),
-                                          decoration: BoxDecoration(
-                                            color: AppColors.primary,
-                                            borderRadius:
-                                                BorderRadius.circular(20),
-                                          ),
-                                          child: const Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Icon(Icons.edit,
-                                                  color: Colors.white,
-                                                  size: 12),
-                                              SizedBox(width: 4),
-                                              Text('Change photo',
-                                                  style: TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 11,
-                                                    fontFamily: 'Poppins',
-                                                    fontWeight: FontWeight.w600,
-                                                  )),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                )
-                              : Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(16),
-                                      decoration: BoxDecoration(
-                                        color:
-                                            AppColors.primary.withOpacity(0.08),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: const Icon(
-                                        Icons.add_photo_alternate_outlined,
-                                        size: 32,
-                                        color: AppColors.primary,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 10),
-                                    const Text('Tap to upload image',
-                                        style: AppTextStyles.body),
-                                  ],
-                                ),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
+              const SizedBox(height: 24),
 
-                      const Text('Product Name', style: AppTextStyles.heading3),
-                      const SizedBox(height: 8),
-                      TextField(controller: nameController),
-                      const SizedBox(height: 16),
-
-                      const Text('Category', style: AppTextStyles.heading3),
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: AppColors.border),
-                        ),
-                        child: DropdownButton<String>(
-                          value: selectedCategory,
-                          isExpanded: true,
-                          underline: const SizedBox(),
-                          style: const TextStyle(
-                            color: AppColors.textDark,
-                            fontFamily: 'Poppins',
-                            fontSize: 14,
-                          ),
-                          items: _categories
-                              .skip(1)
-                              .map((c) =>
-                                  DropdownMenuItem(value: c, child: Text(c)))
-                              .toList(),
-                          onChanged: (val) =>
-                              setModalState(() => selectedCategory = val!),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text('Price (₹)',
-                                    style: AppTextStyles.heading3),
-                                const SizedBox(height: 8),
-                                TextField(
-                                  controller: priceController,
-                                  keyboardType: TextInputType.number,
-                                  decoration: const InputDecoration(
-                                      prefixText: '₹ '),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text('Stock Qty',
-                                    style: AppTextStyles.heading3),
-                                const SizedBox(height: 8),
-                                TextField(
-                                  controller: stockController,
-                                  keyboardType: TextInputType.number,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 28),
-
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            setState(() {
-                              product.imageBytes = pickedImageBytes;
-                            });
-                            Navigator.pop(context);
-                          },
-                          child: const Text('Save Changes'),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                    ],
+              // Submit button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _submit,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: colors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    elevation: 0,
                   ),
+                  child: const Text('Add Product',
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          fontFamily: 'Poppins')),
                 ),
               ),
             ],
@@ -657,173 +538,196 @@ class _ProductsScreenState extends State<ProductsScreen> {
   }
 }
 
-// ─── Product Card ─────────────────────────────────────────────────────────────
+// ─── Product Grid Card ────────────────────────────────────────────────────────
 
-class _ProductCard extends StatelessWidget {
+class _ProductGridCard extends StatelessWidget {
   final ProductModel product;
-  final VoidCallback onEdit;
   final VoidCallback onToggle;
   final VoidCallback onDelete;
 
-  const _ProductCard({
+  const _ProductGridCard({
     required this.product,
-    required this.onEdit,
     required this.onToggle,
     required this.onDelete,
   });
 
+  Color _generateColor(String id) {
+    final colors = [
+      const Color(0xFF2C5E35),
+      const Color(0xFF4A7C3F),
+      const Color(0xFFA0784A),
+      const Color(0xFF2196F3),
+      const Color(0xFF9C27B0),
+      const Color(0xFFE89B2F),
+    ];
+    return colors[id.hashCode % colors.length];
+  }
+
+  String _initials(String name) {
+    final parts = name.split(' ');
+    if (parts.length >= 2) {
+      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+    }
+    return name.isNotEmpty ? name[0].toUpperCase() : '?';
+  }
+
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+    final bgColor = _generateColor(product.id);
+    final hasImage = product.imageBytes != null;
+    final hasAssetImage = product.imageUrl.isNotEmpty;
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: colors.cardBackground,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: colors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Product image
-          ClipRRect(
-            borderRadius:
-                const BorderRadius.vertical(top: Radius.circular(16)),
-            child: SizedBox(
-              height: 160,
-              width: double.infinity,
-              child: product.imageBytes != null
-                  ? Image.memory(product.imageBytes!, fit: BoxFit.cover)
-                  : Container(
-                      color: AppColors.background,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.eco_rounded,
-                              color: AppColors.primary.withOpacity(0.25),
-                              size: 48),
-                          const SizedBox(height: 8),
-                          const Text('No image uploaded',
-                              style: AppTextStyles.bodySmall),
-                        ],
-                      ),
-                    ),
+          // Product image area
+          Expanded(
+            child: ClipRRect(
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(13)),
+              child: hasAssetImage
+                  ? Image.asset(
+                      product.imageUrl,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => _imagePlaceholder(
+                          colors, bgColor),
+                    )
+                  : hasImage
+                      ? Image.memory(
+                          product.imageBytes!,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => _imagePlaceholder(
+                              colors, bgColor),
+                        )
+                      : _imagePlaceholder(colors, bgColor),
             ),
           ),
 
+          // Product info
           Padding(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(10),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(product.name,
-                          style: AppTextStyles.heading3,
-                          overflow: TextOverflow.ellipsis),
-                    ),
-                    Transform.scale(
-                      scale: 0.85,
-                      child: Switch(
-                        value: product.isActive,
-                        onChanged: (_) => onToggle(),
-                        activeColor: AppColors.primary,
-                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                    ),
-                  ],
+                Text(
+                  product.name,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: colors.textDark,
+                    fontFamily: 'Poppins',
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 4),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    product.category,
-                    style: const TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.primary,
-                      fontFamily: 'Poppins',
-                    ),
+                Text(
+                  '₹${product.price.toStringAsFixed(0)}',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: colors.primary,
+                    fontFamily: 'Poppins',
                   ),
                 ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Text(
-                      '₹${product.price.toStringAsFixed(0)}',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textDark,
-                        fontFamily: 'Poppins',
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    _StockBadge(stock: product.stock),
-                    const Spacer(),
-                    if (product.reviews > 0) ...[
-                      Icon(Icons.star_rounded,
-                          size: 14, color: Colors.amber.shade600),
-                      const SizedBox(width: 2),
-                      Text('${product.rating} (${product.reviews})',
-                          style: AppTextStyles.bodySmall),
-                    ],
-                  ],
-                ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 6),
                 Row(
                   children: [
                     Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: onEdit,
-                        icon: const Icon(Icons.edit_outlined,
-                            size: 15, color: AppColors.primary),
-                        label: const Text('Edit',
+                      child: GestureDetector(
+                        onTap: onToggle,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: product.isActive
+                                ? colors.success.withOpacity(0.1)
+                                : colors.textLight.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            product.isActive ? 'Active' : 'Inactive',
                             style: TextStyle(
-                              color: AppColors.primary,
-                              fontFamily: 'Poppins',
-                              fontSize: 13,
+                              fontSize: 9,
                               fontWeight: FontWeight.w600,
-                            )),
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: AppColors.primary),
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8)),
+                              color: product.isActive
+                                  ? colors.success
+                                  : colors.textLight,
+                              fontFamily: 'Poppins',
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 6),
                     Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () => _confirmDelete(context),
-                        icon: const Icon(Icons.delete_outline,
-                            size: 15, color: AppColors.error),
-                        label: const Text('Delete',
+                      child: GestureDetector(
+                        onTap: () {
+                          showDialog(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14)),
+                              title: Text('Delete Product',
+                                  style: TextStyle(
+                                      fontFamily: 'Poppins',
+                                      fontWeight: FontWeight.w600,
+                                      color: colors.textDark)),
+                              content: Text(
+                                  'Remove "${product.name}" from your store?',
+                                  style: TextStyle(
+                                      fontFamily: 'Poppins',
+                                      color: colors.textMedium)),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(ctx),
+                                  child: Text('Cancel',
+                                      style: TextStyle(
+                                          color: colors.textLight,
+                                          fontFamily: 'Poppins')),
+                                ),
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.pop(ctx);
+                                    onDelete();
+                                  },
+                                  child: Text('Delete',
+                                      style: TextStyle(
+                                          color: colors.error,
+                                          fontFamily: 'Poppins',
+                                          fontWeight: FontWeight.w600)),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: colors.error.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            'Delete',
                             style: TextStyle(
-                              color: AppColors.error,
-                              fontFamily: 'Poppins',
-                              fontSize: 13,
+                              fontSize: 9,
                               fontWeight: FontWeight.w600,
-                            )),
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: AppColors.error),
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8)),
+                              color: colors.error,
+                              fontFamily: 'Poppins',
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
                         ),
                       ),
                     ),
@@ -837,73 +741,106 @@ class _ProductCard extends StatelessWidget {
     );
   }
 
-  void _confirmDelete(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Delete Product',
-            style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w600)),
-        content: Text('Remove "${product.name}" from your store?',
-            style: const TextStyle(fontFamily: 'Poppins')),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel',
-                style: TextStyle(color: AppColors.textLight, fontFamily: 'Poppins')),
+  Widget _imagePlaceholder(ThemeColors colors, Color bgColor) {
+    return Container(
+      width: double.infinity,
+      color: bgColor.withOpacity(0.12),
+      child: Stack(
+        children: [
+          Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: bgColor.withOpacity(0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Text(
+                      _initials(product.name),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: bgColor,
+                        fontFamily: 'Poppins',
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Text(
+                    product.category,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 9,
+                      color: colors.textLight,
+                      fontFamily: 'Poppins',
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
           ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              onDelete();
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text('Delete'),
+          // Stock badge
+          Positioned(
+            top: 6,
+            right: 6,
+            child: _buildStockBadge(colors),
+          ),
+          // Active indicator
+          Positioned(
+            top: 6,
+            left: 6,
+            child: Container(
+              width: 10,
+              height: 10,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: product.isActive
+                    ? colors.success
+                    : colors.textLight,
+              ),
+            ),
           ),
         ],
       ),
     );
   }
-}
 
-// ─── Stock Badge ──────────────────────────────────────────────────────────────
-
-class _StockBadge extends StatelessWidget {
-  final int stock;
-  const _StockBadge({required this.stock});
-
-  @override
-  Widget build(BuildContext context) {
-    Color color;
-    Color bgColor;
+  Widget _buildStockBadge(ThemeColors colors) {
+    Color badgeColor;
     String text;
 
-    if (stock == 0) {
-      color = AppColors.error;
-      bgColor = AppColors.errorLight;
+    if (product.stock == 0) {
+      badgeColor = colors.error;
       text = 'Out of stock';
-    } else if (stock <= 20) {
-      color = AppColors.warning;
-      bgColor = AppColors.warningLight;
-      text = 'Low: $stock';
+    } else if (product.stock <= 20) {
+      badgeColor = colors.warning;
+      text = 'Low: ${product.stock}';
     } else {
-      color = AppColors.success;
-      bgColor = AppColors.successLight;
-      text = 'In stock: $stock';
+      badgeColor = colors.success;
+      text = 'In stock: ${product.stock}';
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: bgColor,
+        color: badgeColor,
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
         text,
-        style: TextStyle(
-          fontSize: 10,
+        style: const TextStyle(
+          fontSize: 9,
           fontWeight: FontWeight.w600,
-          color: color,
+          color: Colors.white,
           fontFamily: 'Poppins',
         ),
       ),

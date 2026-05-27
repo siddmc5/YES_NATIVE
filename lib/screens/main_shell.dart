@@ -40,6 +40,8 @@ class _MainShellState extends State<MainShell> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+
     return Scaffold(
       body: AnimatedSwitcher(
         duration: const Duration(milliseconds: 250),
@@ -58,7 +60,7 @@ class _MainShellState extends State<MainShell> {
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: colors.navBarBg,
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.06),
@@ -79,6 +81,7 @@ class _MainShellState extends State<MainShell> {
                   label: 'Dashboard',
                   isActive: _currentIndex == 0,
                   onTap: () => setState(() => _currentIndex = 0),
+                  colors: colors,
                 ),
                 _NavItem(
                   icon: Icons.receipt_long_outlined,
@@ -87,6 +90,7 @@ class _MainShellState extends State<MainShell> {
                   isActive: _currentIndex == 1,
                   onTap: () => setState(() => _currentIndex = 1),
                   badge: '5',
+                  colors: colors,
                 ),
                 _NavItem(
                   icon: Icons.inventory_2_outlined,
@@ -94,6 +98,7 @@ class _MainShellState extends State<MainShell> {
                   label: 'Products',
                   isActive: _currentIndex == 2,
                   onTap: () => setState(() => _currentIndex = 2),
+                  colors: colors,
                 ),
                 _NavItem(
                   icon: Icons.bar_chart_outlined,
@@ -101,6 +106,7 @@ class _MainShellState extends State<MainShell> {
                   label: 'Analytics',
                   isActive: _currentIndex == 3,
                   onTap: () => setState(() => _currentIndex = 3),
+                  colors: colors,
                 ),
                 _NavItem(
                   icon: Icons.store_outlined,
@@ -108,6 +114,7 @@ class _MainShellState extends State<MainShell> {
                   label: 'Store',
                   isActive: _currentIndex == 4,
                   onTap: () => setState(() => _currentIndex = 4),
+                  colors: colors,
                 ),
               ],
             ),
@@ -148,6 +155,7 @@ class _NavItem extends StatefulWidget {
   final bool isActive;
   final VoidCallback onTap;
   final String? badge;
+  final ThemeColors colors;
 
   const _NavItem({
     required this.icon,
@@ -156,6 +164,7 @@ class _NavItem extends StatefulWidget {
     required this.isActive,
     required this.onTap,
     this.badge,
+    required this.colors,
   });
 
   @override
@@ -194,7 +203,9 @@ class _NavItemState extends State<_NavItem> {
                     child: Icon(
                       widget.isActive ? widget.activeIcon : widget.icon,
                       key: ValueKey(widget.isActive),
-                      color: widget.isActive ? AppColors.primary : AppColors.textLight,
+                      color: widget.isActive
+                          ? widget.colors.primary
+                          : widget.colors.textLight,
                       size: 24,
                     ),
                   ),
@@ -205,7 +216,7 @@ class _NavItemState extends State<_NavItem> {
                       child: Container(
                         padding: const EdgeInsets.all(3),
                         decoration: const BoxDecoration(
-                          color: AppColors.error,
+                          color: Colors.red,
                           shape: BoxShape.circle,
                         ),
                         child: Text(
@@ -225,8 +236,11 @@ class _NavItemState extends State<_NavItem> {
                 duration: const Duration(milliseconds: 200),
                 style: TextStyle(
                   fontSize: 10,
-                  fontWeight: widget.isActive ? FontWeight.w600 : FontWeight.w400,
-                  color: widget.isActive ? AppColors.primary : AppColors.textLight,
+                  fontWeight:
+                      widget.isActive ? FontWeight.w600 : FontWeight.w400,
+                  color: widget.isActive
+                      ? widget.colors.primary
+                      : widget.colors.textLight,
                   fontFamily: 'Poppins',
                 ),
                 child: Text(widget.label),

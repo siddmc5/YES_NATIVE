@@ -9,6 +9,7 @@ class StatCard extends StatelessWidget {
   final Color bgColor;
   final String subtitle;
   final bool? isPositive;
+  final ThemeColors colors;
 
   const StatCard({
     super.key,
@@ -19,6 +20,7 @@ class StatCard extends StatelessWidget {
     required this.bgColor,
     required this.subtitle,
     required this.isPositive,
+    required this.colors,
   });
 
   @override
@@ -26,9 +28,9 @@ class StatCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.cardBackground,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: colors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -48,7 +50,7 @@ class StatCard extends StatelessWidget {
                 Icon(
                   isPositive! ? Icons.trending_up : Icons.trending_down,
                   size: 16,
-                  color: isPositive! ? AppColors.success : AppColors.error,
+                  color: isPositive! ? colors.success : colors.error,
                 ),
             ],
           ),
@@ -63,10 +65,10 @@ class StatCard extends StatelessWidget {
                 offset: Offset(0, 10 * (1 - val)),
                 child: Text(
                   value,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.textDark,
+                    color: colors.textDark,
                     fontFamily: 'Poppins',
                   ),
                 ),
@@ -74,7 +76,11 @@ class StatCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 2),
-          Text(label, style: AppTextStyles.bodySmall),
+          Text(label,
+              style: TextStyle(
+                  color: colors.textLight,
+                  fontSize: 11,
+                  fontFamily: 'Poppins')),
           const SizedBox(height: 4),
           Text(
             subtitle,
@@ -82,10 +88,10 @@ class StatCard extends StatelessWidget {
               fontSize: 10,
               fontWeight: FontWeight.w500,
               color: isPositive == true
-                  ? AppColors.success
+                  ? colors.success
                   : isPositive == false
-                      ? AppColors.error
-                      : AppColors.textLight,
+                      ? colors.error
+                      : colors.textLight,
               fontFamily: 'Poppins',
             ),
           ),

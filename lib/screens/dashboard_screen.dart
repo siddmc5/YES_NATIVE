@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:html' as html;
 import '../theme.dart';
 import '../models/models.dart';
 import '../widgets/stat_card.dart';
@@ -7,23 +8,48 @@ import 'offer_screen.dart';
 import 'products_screen.dart';
 import '../services/offer_manager.dart';
 import 'dart:ui';
+
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
 
+  void _exportSalesReport(BuildContext context) {
+    final buffer = StringBuffer();
+    buffer.writeln('Product Name,Category,Price (₹),Units Sold,Revenue (₹),Stock Status');
+    for (final p in SampleData.products) {
+      final unitsSold = p.reviews;
+      final revenue = (p.price * unitsSold * 0.3).toStringAsFixed(0);
+      final stockStatus = p.stock == 0 ? 'Out of Stock' : (p.stock <= 20 ? 'Low' : 'In Stock');
+      buffer.writeln('"${p.name}","${p.category}",${p.price.toStringAsFixed(0)},$unitsSold,$revenue,$stockStatus');
+    }
+
+    final csv = buffer.toString();
+    final blob = html.Blob([csv], 'text/csv');
+    final url = html.Url.createObjectUrlFromBlob(blob);
+    html.AnchorElement(href: url)
+      ..setAttribute('download', 'sales_report.csv')
+      ..click();
+    html.Url.revokeObjectUrl(url);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Sales report downloaded')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final stats = SampleData.stats;
     final recentOrders = SampleData.orders.take(3).toList();
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: colors.background,
       body: CustomScrollView(
         physics: const ClampingScrollPhysics(),
         slivers: [
-          // Flat header — no floating/collapse effect
+          // Flat header
           SliverToBoxAdapter(
             child: Container(
-              color: AppColors.bannerGreen,
+              color: colors.bannerGreen,
               padding: const EdgeInsets.fromLTRB(20, 56, 20, 20),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -92,7 +118,9 @@ class DashboardScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text("Today's Overview", style: AppTextStyles.heading2),
+                  Text("Today's Overview",
+                      style: AppTextStyles.heading2.copyWith(
+                          color: colors.primary)),
                   const SizedBox(height: 14),
                   Row(
                     children: [
@@ -101,10 +129,11 @@ class DashboardScreen extends StatelessWidget {
                           label: "Revenue",
                           value: "₹${stats.todayRevenue.toStringAsFixed(0)}",
                           icon: Icons.currency_rupee_rounded,
-                          color: AppColors.primary,
-                          bgColor: AppColors.primary.withOpacity(0.08),
+                          color: colors.primary,
+                          bgColor: colors.primary.withOpacity(0.08),
                           subtitle: "+12% vs yesterday",
                           isPositive: true,
+                          colors: colors,
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -113,10 +142,11 @@ class DashboardScreen extends StatelessWidget {
                           label: "Orders",
                           value: stats.todayOrders.toString(),
                           icon: Icons.receipt_long_rounded,
-                          color: AppColors.secondary,
-                          bgColor: AppColors.secondary.withOpacity(0.08),
+                          color: colors.secondary,
+                          bgColor: colors.secondary.withOpacity(0.08),
                           subtitle: "${stats.pendingOrders} pending",
                           isPositive: null,
+                          colors: colors,
                         ),
                       ),
                     ],
@@ -134,6 +164,7 @@ class DashboardScreen extends StatelessWidget {
                           bgColor: const Color(0xFF2196F3).withOpacity(0.08),
                           subtitle: "${stats.monthOrders} orders",
                           isPositive: true,
+                          colors: colors,
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -146,122 +177,115 @@ class DashboardScreen extends StatelessWidget {
                           bgColor: const Color(0xFF9C27B0).withOpacity(0.08),
                           subtitle: "1 out of stock",
                           isPositive: false,
+                          colors: colors,
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 24),
 
-                  const Text("Quick Actions", style: AppTextStyles.heading2),
+                  Text("Quick Actions",
+                      style: AppTextStyles.heading2.copyWith(
+                          color: colors.primary)),
                   const SizedBox(height: 14),
                   Row(
                     children: [
                       _QuickAction(
                           icon: Icons.add_box_outlined,
                           label: 'Add\nProduct',
+                          colors: colors,
                           onTap: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (_) => const ProductsScreen()),
+                              MaterialPageRoute(
+                                  builder: (_) => const ProductsScreen()),
                             );
                           }),
                       const SizedBox(width: 10),
                       _QuickAction(
                           icon: Icons.discount_outlined,
                           label: 'Create\nOffer',
+                          colors: colors,
                           onTap: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (_) => const OfferScreen()),
+                              MaterialPageRoute(
+                                  builder: (_) => const OfferScreen()),
                             );
                           }),
                       const SizedBox(width: 10),
                       _QuickAction(
                           icon: Icons.download_outlined,
                           label: 'Export\nReport',
-                          onTap: () {
-                              showDialog(
-                                context: context,
-                                builder: (ctx) => AlertDialog(
-                                  title: const Text('Export Report'),
-                                  content: const Text('Select format to download'),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () {
-                                        Navigator.of(ctx).pop();
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(content: Text('Report downloaded as CSV (demo)')),
-                                        );
-                                      },
-                                      child: const Text('CSV'),
-                                    ),
-                                    TextButton(
-                                      onPressed: () {
-                                        Navigator.of(ctx).pop();
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(content: Text('Report downloaded as Excel (demo)')),
-                                        );
-                                      },
-                                      child: const Text('Excel'),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            }),
+                          colors: colors,
+                          onTap: () => _exportSalesReport(context)),
                       const SizedBox(width: 10),
                       _QuickAction(
                           icon: Icons.local_offer_outlined,
                           label: 'Current\nOffers',
+                          colors: colors,
                           onTap: () {
-            showDialog(
-            context: context,
-            builder: (ctx) => Dialog(
-              insetPadding: const EdgeInsets.all(20),
-              backgroundColor: Colors.transparent,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.8),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text('Current Offers', style: AppTextStyles.heading2.copyWith(color: AppColors.bannerGreen)),
-                        const SizedBox(height: 8),
-                        SizedBox(
-                          width: double.maxFinite,
-                          child: ListView.builder(
-                            shrinkWrap: true,
-                            itemCount: OfferManager().offers.length,
-                            itemBuilder: (ctx, i) {
-                              final o = OfferManager().offers[i];
-                              return ListTile(
-                                title: Text(o['title'] ?? ''),
-                                subtitle: Text('Discount: ${o['discount']}, Code: ${o['code']}'),
-                              );
-                            },
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: TextButton(
-                            onPressed: () => Navigator.of(ctx).pop(),
-                            child: const Text('Close'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          );
+                            showDialog(
+                              context: context,
+                              builder: (ctx) => Dialog(
+                                insetPadding: const EdgeInsets.all(20),
+                                backgroundColor: Colors.transparent,
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(20),
+                                  child: BackdropFilter(
+                                    filter: ImageFilter.blur(
+                                        sigmaX: 10, sigmaY: 10),
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: colors.cardBackground
+                                            .withOpacity(0.9),
+                                        borderRadius:
+                                            BorderRadius.circular(20),
+                                      ),
+                                      padding: const EdgeInsets.all(16),
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text('Current Offers',
+                                              style: AppTextStyles.heading2
+                                                  .copyWith(
+                                                      color: colors.primary)),
+                                          const SizedBox(height: 8),
+                                          SizedBox(
+                                            width: double.maxFinite,
+                                            child: ListView.builder(
+                                              shrinkWrap: true,
+                                              itemCount: OfferManager()
+                                                  .offers
+                                                  .length,
+                                              itemBuilder: (ctx, i) {
+                                                final o = OfferManager()
+                                                    .offers[i];
+                                                return ListTile(
+                                                  title: Text(
+                                                      o['title'] ?? ''),
+                                                  subtitle: Text(
+                                                      'Discount: ${o['discount']}, Code: ${o['code']}'),
+                                                );
+                                              },
+                                            ),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Align(
+                                            alignment: Alignment.centerRight,
+                                            child: TextButton(
+                                              onPressed: () =>
+                                                  Navigator.of(ctx).pop(),
+                                              child: const Text('Close'),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
                           }),
                     ],
                   ),
@@ -270,14 +294,15 @@ class DashboardScreen extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text("Recent Orders",
-                          style: AppTextStyles.heading2),
+                      Text("Recent Orders",
+                          style: AppTextStyles.heading2.copyWith(
+                              color: colors.primary)),
                       TextButton(
                         onPressed: () {},
-                        child: const Text(
+                        child: Text(
                           'See all',
                           style: TextStyle(
-                            color: AppColors.primary,
+                            color: colors.primary,
                             fontFamily: 'Poppins',
                             fontSize: 13,
                           ),
@@ -302,11 +327,13 @@ class DashboardScreen extends StatelessWidget {
 class _QuickAction extends StatelessWidget {
   final IconData icon;
   final String label;
+  final ThemeColors colors;
   final VoidCallback onTap;
 
   const _QuickAction({
     required this.icon,
     required this.label,
+    required this.colors,
     required this.onTap,
   });
 
@@ -318,21 +345,21 @@ class _QuickAction extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 14),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: colors.cardBackground,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.border),
+            border: Border.all(color: colors.border),
           ),
           child: Column(
             children: [
-              Icon(icon, color: AppColors.primary, size: 24),
+              Icon(icon, color: colors.primary, size: 24),
               const SizedBox(height: 6),
               Text(
                 label,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w500,
-                  color: AppColors.textMedium,
+                  color: colors.textMedium,
                   fontFamily: 'Poppins',
                   height: 1.3,
                 ),

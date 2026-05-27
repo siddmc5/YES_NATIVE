@@ -9,41 +9,41 @@ class OrderTile extends StatelessWidget {
 
   const OrderTile({super.key, required this.order, required this.compact});
 
-  Color _statusColor(OrderStatus status) {
+  Color _statusColor(OrderStatus status, ThemeColors colors) {
     switch (status) {
       case OrderStatus.pending:
-        return AppColors.warning;
+        return colors.warning;
       case OrderStatus.confirmed:
         return const Color(0xFF2196F3);
       case OrderStatus.processing:
-        return AppColors.secondary;
+        return colors.secondary;
       case OrderStatus.shipped:
-        return AppColors.primary;
+        return colors.primary;
       case OrderStatus.delivered:
-        return AppColors.success;
+        return colors.success;
       case OrderStatus.cancelled:
-        return AppColors.error;
+        return colors.error;
       case OrderStatus.completed:
-        return AppColors.success;
+        return colors.success;
     }
   }
 
-  Color _statusBg(OrderStatus status) {
+  Color _statusBg(OrderStatus status, ThemeColors colors) {
     switch (status) {
       case OrderStatus.pending:
-        return AppColors.warningLight;
+        return colors.warningLight;
       case OrderStatus.confirmed:
         return const Color(0xFFE3F2FD);
       case OrderStatus.processing:
-        return AppColors.secondary.withOpacity(0.1);
+        return colors.secondary.withOpacity(0.1);
       case OrderStatus.shipped:
-        return AppColors.primary.withOpacity(0.08);
+        return colors.primary.withOpacity(0.08);
       case OrderStatus.delivered:
-        return AppColors.successLight;
+        return colors.successLight;
       case OrderStatus.cancelled:
-        return AppColors.errorLight;
+        return colors.errorLight;
       case OrderStatus.completed:
-        return AppColors.successLight;
+        return colors.successLight;
     }
   }
 
@@ -56,16 +56,17 @@ class OrderTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.cardBackground,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: colors.border),
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
-        onTap: () => _showOrderDetails(context),
+        onTap: () => _showOrderDetails(context, colors),
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Column(
@@ -77,17 +78,17 @@ class OrderTile extends StatelessWidget {
                 children: [
                   Text(
                     order.orderId,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.primary,
+                      color: colors.primary,
                       fontFamily: 'Poppins',
                     ),
                   ),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: _statusBg(order.status),
+                      color: _statusBg(order.status, colors),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
@@ -95,7 +96,7 @@ class OrderTile extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w600,
-                        color: _statusColor(order.status),
+                        color: _statusColor(order.status, colors),
                         fontFamily: 'Poppins',
                       ),
                     ),
@@ -106,11 +107,19 @@ class OrderTile extends StatelessWidget {
               // Customer row
               Row(
                 children: [
-                  const Icon(Icons.person_outline, size: 14, color: AppColors.textLight),
+                  Icon(Icons.person_outline, size: 14, color: colors.textLight),
                   const SizedBox(width: 4),
-                  Text(order.customerName, style: AppTextStyles.body),
+                  Text(order.customerName,
+                      style: TextStyle(
+                          color: colors.textMedium,
+                          fontSize: 13,
+                          fontFamily: 'Poppins')),
                   const Spacer(),
-                  Text(_timeAgo(order.createdAt), style: AppTextStyles.bodySmall),
+                  Text(_timeAgo(order.createdAt),
+                      style: TextStyle(
+                          color: colors.textLight,
+                          fontSize: 11,
+                          fontFamily: 'Poppins')),
                 ],
               ),
               // Optional expanded details
@@ -118,12 +127,16 @@ class OrderTile extends StatelessWidget {
                 const SizedBox(height: 6),
                 Row(
                   children: [
-                    const Icon(Icons.location_on_outlined, size: 14, color: AppColors.textLight),
+                    Icon(Icons.location_on_outlined,
+                        size: 14, color: colors.textLight),
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
                         order.address,
-                        style: AppTextStyles.bodySmall,
+                        style: TextStyle(
+                            color: colors.textLight,
+                            fontSize: 11,
+                            fontFamily: 'Poppins'),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -133,7 +146,7 @@ class OrderTile extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: AppColors.background,
+                    color: colors.background,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Column(
@@ -142,9 +155,17 @@ class OrderTile extends StatelessWidget {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('${item.quantity}x ${item.productName}', style: AppTextStyles.bodySmall),
+                          Text('${item.quantity}x ${item.productName}',
+                              style: TextStyle(
+                                  color: colors.textLight,
+                                  fontSize: 11,
+                                  fontFamily: 'Poppins')),
                           Text('₹${(item.quantity * item.price).toStringAsFixed(0)}',
-                              style: AppTextStyles.bodySmall.copyWith(fontWeight: FontWeight.w600, color: AppColors.textDark)),
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: colors.textDark,
+                                  fontSize: 11,
+                                  fontFamily: 'Poppins')),
                         ],
                       ),
                     )).toList(),
@@ -158,11 +179,18 @@ class OrderTile extends StatelessWidget {
                 children: [
                   Text(
                     '${order.items.length} item${order.items.length > 1 ? 's' : ''}',
-                    style: AppTextStyles.bodySmall,
+                    style: TextStyle(
+                        color: colors.textLight,
+                        fontSize: 11,
+                        fontFamily: 'Poppins'),
                   ),
                   Text(
                     '₹${order.total.toStringAsFixed(0)}',
-                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.textDark, fontFamily: 'Poppins'),
+                    style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: colors.textDark,
+                        fontFamily: 'Poppins'),
                   ),
                 ],
               ),
@@ -182,11 +210,15 @@ class OrderTile extends StatelessWidget {
                           ));
                         },
                         style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: AppColors.error),
+                          side: BorderSide(color: colors.error),
                           padding: const EdgeInsets.symmetric(vertical: 8),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                         ),
-                        child: const Text('Reject', style: TextStyle(color: AppColors.error, fontFamily: 'Poppins', fontSize: 13)),
+                        child: Text('Reject',
+                            style: TextStyle(
+                                color: colors.error,
+                                fontFamily: 'Poppins',
+                                fontSize: 13)),
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -194,9 +226,12 @@ class OrderTile extends StatelessWidget {
                       child: ElevatedButton(
                         onPressed: () {
                           OrderManager().accept(order);
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Order accepted, now processing')));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text('Order accepted, now processing')));
                         },
-                        style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 8)),
+                        style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 8)),
                         child: const Text('Accept'),
                       ),
                     ),
@@ -211,9 +246,12 @@ class OrderTile extends StatelessWidget {
                       child: ElevatedButton(
                         onPressed: () {
                           OrderManager().process(order);
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Order moved to shipped')));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text('Order moved to shipped')));
                         },
-                        style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 8)),
+                        style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 8)),
                         child: const Text('Ship'),
                       ),
                     ),
@@ -228,9 +266,12 @@ class OrderTile extends StatelessWidget {
                       child: ElevatedButton(
                         onPressed: () {
                           OrderManager().ship(order);
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Order moved to delivered')));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text('Order moved to delivered')));
                         },
-                        style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 8)),
+                        style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 8)),
                         child: const Text('Deliver'),
                       ),
                     ),
@@ -245,18 +286,26 @@ class OrderTile extends StatelessWidget {
                       child: ElevatedButton(
                         onPressed: () {
                           OrderManager().deliver(order);
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Order completed')));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Order completed')));
                         },
-                        style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 8)),
+                        style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 8)),
                         child: const Text('Complete'),
                       ),
                     ),
                   ],
                 ),
               ],
-              if (!compact && (order.status == OrderStatus.completed || order.status == OrderStatus.cancelled)) ...[
+              if (!compact &&
+                  (order.status == OrderStatus.completed ||
+                      order.status == OrderStatus.cancelled)) ...[
                 const SizedBox(height: 10),
-                const Text('No further actions', style: AppTextStyles.bodySmall),
+                Text('No further actions',
+                    style: TextStyle(
+                        color: colors.textLight,
+                        fontSize: 11,
+                        fontFamily: 'Poppins')),
               ],
             ],
           ),
@@ -265,51 +314,128 @@ class OrderTile extends StatelessWidget {
     );
   }
 
-  void _showOrderDetails(BuildContext context) {
+  void _showOrderDetails(BuildContext context, ThemeColors colors) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => Container(
         height: MediaQuery.of(context).size.height * 0.7,
-        decoration: const BoxDecoration(
-          color: AppColors.background,
+        decoration: BoxDecoration(
+          color: colors.cardBackground,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Header
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(order.orderId, style: AppTextStyles.heading2),
-                IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close_rounded)),
+                Text(order.orderId,
+                    style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: colors.primary,
+                        fontFamily: 'Poppins')),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _statusBg(order.status, colors),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    order.status.label,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: _statusColor(order.status, colors),
+                      fontFamily: 'Poppins',
+                    ),
+                  ),
+                ),
               ],
             ),
-            const SizedBox(height: 16),
-            _DetailRow(icon: Icons.person_outline, label: 'Customer', value: order.customerName),
-            _DetailRow(icon: Icons.phone_outlined, label: 'Phone', value: order.customerPhone),
-            _DetailRow(icon: Icons.location_on_outlined, label: 'Address', value: order.address),
-            const SizedBox(height: 16),
-            const Text('Order Items', style: AppTextStyles.heading3),
+            const SizedBox(height: 20),
+            // Customer details
+            _DetailRow(
+                icon: Icons.person_outline,
+                label: 'Customer',
+                value: order.customerName,
+                colors: colors),
+            _DetailRow(
+                icon: Icons.phone_outlined,
+                label: 'Phone',
+                value: order.customerPhone,
+                colors: colors),
+            _DetailRow(
+                icon: Icons.location_on_outlined,
+                label: 'Address',
+                value: order.address,
+                colors: colors),
+            const SizedBox(height: 20),
+            // Order items header
+            Text('Order Items',
+                style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: colors.textDark,
+                    fontFamily: 'Poppins')),
             const SizedBox(height: 10),
-                            ...order.items.map((item) => Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Row(
+            Expanded(
+              child: ListView(
+                children: [
+                  ...order.items.map((item) => Container(
+                        padding: const EdgeInsets.symmetric(vertical: 6),
+                        decoration: BoxDecoration(
+                          border: Border(
+                            bottom: BorderSide(
+                                color: colors.border.withOpacity(0.3)),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('${item.quantity}x ${item.productName}',
+                                style: TextStyle(
+                                    color: colors.textMedium,
+                                    fontSize: 13,
+                                    fontFamily: 'Poppins')),
+                            Text(
+                                '₹${(item.quantity * item.price).toStringAsFixed(0)}',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: colors.textDark,
+                                    fontSize: 13,
+                                    fontFamily: 'Poppins')),
+                          ],
+                        ),
+                      )),
+                  const SizedBox(height: 12),
+                  // Total row
+                  Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('${item.quantity}x ${item.productName}', style: AppTextStyles.bodySmall),
-                      Text('₹${(item.quantity * item.price).toStringAsFixed(0)}',
-                          style: AppTextStyles.bodySmall.copyWith(fontWeight: FontWeight.w600, color: AppColors.textDark)),
+                      Text('Total',
+                          style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: colors.textDark,
+                              fontFamily: 'Poppins')),
+                      Text(
+                          '₹${order.total.toStringAsFixed(0)}',
+                          style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              color: colors.primary,
+                              fontFamily: 'Poppins')),
                     ],
                   ),
-                )).toList(),
-            const Divider(),
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              const Text('Total', style: AppTextStyles.heading3),
-              Text('₹\${order.total.toStringAsFixed(0)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.primary, fontFamily: 'Poppins')),
-            ]),
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -321,8 +447,14 @@ class _DetailRow extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
+  final ThemeColors colors;
 
-  const _DetailRow({required this.icon, required this.label, required this.value});
+  const _DetailRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.colors,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -331,12 +463,24 @@ class _DetailRow extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 16, color: AppColors.primary),
+          Icon(icon, size: 16, color: colors.primary),
           const SizedBox(width: 8),
-          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(label, style: AppTextStyles.bodySmall),
-            Text(value, style: AppTextStyles.heading3),
-          ]),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label,
+                  style: TextStyle(
+                      color: colors.textLight,
+                      fontSize: 11,
+                      fontFamily: 'Poppins')),
+              Text(value,
+                  style: TextStyle(
+                      fontWeight: FontWeight.w500,
+                      color: colors.textDark,
+                      fontFamily: 'Poppins',
+                      fontSize: 14)),
+            ],
+          ),
         ],
       ),
     );
