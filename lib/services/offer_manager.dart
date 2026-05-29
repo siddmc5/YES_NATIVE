@@ -28,4 +28,11 @@ class OfferManager {
     _offers.insert(0, offer);
     // TODO: Persist to local storage if needed.
   }
+
+  // Remove an offer at a specific index.
+  void removeOfferAt(int index) {
+    if (index >= 0 && index < _offers.length) {
+      _offers.removeAt(index);
+    }
+  }
 }

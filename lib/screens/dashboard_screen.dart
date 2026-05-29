@@ -54,11 +54,11 @@ class DashboardScreen extends StatelessWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Expanded(
+                  const Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'Good morning,',
                           style: TextStyle(
                             color: Colors.white60,
@@ -66,7 +66,7 @@ class DashboardScreen extends StatelessWidget {
                             fontFamily: 'Poppins',
                           ),
                         ),
-                        const Text(
+                        Text(
                           'Yes Native Store 👋',
                           style: TextStyle(
                             color: Colors.white,
@@ -82,7 +82,7 @@ class DashboardScreen extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.15),
+                      color: Colors.white.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Row(
@@ -130,7 +130,7 @@ class DashboardScreen extends StatelessWidget {
                           value: "₹${stats.todayRevenue.toStringAsFixed(0)}",
                           icon: Icons.currency_rupee_rounded,
                           color: colors.primary,
-                          bgColor: colors.primary.withOpacity(0.08),
+                          bgColor: colors.primary.withValues(alpha: 0.08),
                           subtitle: "+12% vs yesterday",
                           isPositive: true,
                           colors: colors,
@@ -143,7 +143,7 @@ class DashboardScreen extends StatelessWidget {
                           value: stats.todayOrders.toString(),
                           icon: Icons.receipt_long_rounded,
                           color: colors.secondary,
-                          bgColor: colors.secondary.withOpacity(0.08),
+                          bgColor: colors.secondary.withValues(alpha: 0.08),
                           subtitle: "${stats.pendingOrders} pending",
                           isPositive: null,
                           colors: colors,
@@ -161,7 +161,7 @@ class DashboardScreen extends StatelessWidget {
                               "₹${(stats.monthRevenue / 1000).toStringAsFixed(1)}K",
                           icon: Icons.trending_up_rounded,
                           color: const Color(0xFF2196F3),
-                          bgColor: const Color(0xFF2196F3).withOpacity(0.08),
+                          bgColor: const Color(0xFF2196F3).withValues(alpha: 0.08),
                           subtitle: "${stats.monthOrders} orders",
                           isPositive: true,
                           colors: colors,
@@ -174,7 +174,7 @@ class DashboardScreen extends StatelessWidget {
                           value: stats.totalProducts.toString(),
                           icon: Icons.inventory_2_rounded,
                           color: const Color(0xFF9C27B0),
-                          bgColor: const Color(0xFF9C27B0).withOpacity(0.08),
+                          bgColor: const Color(0xFF9C27B0).withValues(alpha: 0.08),
                           subtitle: "1 out of stock",
                           isPositive: false,
                           colors: colors,
@@ -227,7 +227,7 @@ class DashboardScreen extends StatelessWidget {
                           onTap: () {
                             showDialog(
                               context: context,
-                              builder: (ctx) => Dialog(
+                              builder: (dCtx) => Dialog(
                                 insetPadding: const EdgeInsets.all(20),
                                 backgroundColor: Colors.transparent,
                                 child: ClipRRect(
@@ -238,48 +238,69 @@ class DashboardScreen extends StatelessWidget {
                                     child: Container(
                                       decoration: BoxDecoration(
                                         color: colors.cardBackground
-                                            .withOpacity(0.9),
+                                            .withValues(alpha: 0.9),
                                         borderRadius:
                                             BorderRadius.circular(20),
                                       ),
                                       padding: const EdgeInsets.all(16),
-                                      child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Text('Current Offers',
-                                              style: AppTextStyles.heading2
-                                                  .copyWith(
-                                                      color: colors.primary)),
-                                          const SizedBox(height: 8),
-                                          SizedBox(
-                                            width: double.maxFinite,
-                                            child: ListView.builder(
-                                              shrinkWrap: true,
-                                              itemCount: OfferManager()
-                                                  .offers
-                                                  .length,
-                                              itemBuilder: (ctx, i) {
-                                                final o = OfferManager()
-                                                    .offers[i];
-                                                return ListTile(
-                                                  title: Text(
-                                                      o['title'] ?? ''),
-                                                  subtitle: Text(
-                                                      'Discount: ${o['discount']}, Code: ${o['code']}'),
-                                                );
-                                              },
-                                            ),
-                                          ),
-                                          const SizedBox(height: 8),
-                                          Align(
-                                            alignment: Alignment.centerRight,
-                                            child: TextButton(
-                                              onPressed: () =>
-                                                  Navigator.of(ctx).pop(),
-                                              child: const Text('Close'),
-                                            ),
-                                          ),
-                                        ],
+                                      child: StatefulBuilder(
+                                        builder: (innerCtx, setState) {
+                                          return Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text('Current Offers',
+                                                  style: AppTextStyles.heading2
+                                                      .copyWith(
+                                                          color:
+                                                              colors.primary)),
+                                              const SizedBox(height: 8),
+                                              SizedBox(
+                                                width: double.maxFinite,
+                                                child: ListView.builder(
+                                                  shrinkWrap: true,
+                                                  itemCount: OfferManager()
+                                                      .offers
+                                                      .length,
+                                                  itemBuilder: (ctx, i) {
+                                                    final o = OfferManager()
+                                                        .offers[i];
+                                                    return ListTile(
+                                                      title:
+                                                          Text(o['title'] ?? ''),
+                                                      subtitle: Text(
+                                                          'Discount: ${o['discount']}, Code: ${o['code']}'),
+                                                      trailing: IconButton(
+                                                        icon: const Icon(
+                                                          Icons.delete_outline,
+                                                          color: Colors.red,
+                                                        ),
+                                                        onPressed: () {
+                                                          OfferManager()
+                                                              .removeOfferAt(i);
+                                                          setState(() {});
+                                                          ScaffoldMessenger.of(
+                                                                  context)
+                                                              .showSnackBar(const SnackBar(
+                                                                  content: Text(
+                                                                      'Offer removed (demo)')));
+                                                        },
+                                                      ),
+                                                    );
+                                                  },
+                                                ),
+                                              ),
+                                              const SizedBox(height: 8),
+                                              Align(
+                                                alignment: Alignment.centerRight,
+                                                child: TextButton(
+                                                  onPressed: () =>
+                                                      Navigator.of(dCtx).pop(),
+                                                  child: const Text('Close'),
+                                                ),
+                                              ),
+                                            ],
+                                          );
+                                        },
                                       ),
                                     ),
                                   ),

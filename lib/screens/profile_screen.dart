@@ -20,9 +20,9 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
   String _storeDescription =
       'Premium traditional superfoods and wellness products since 2020.';
 
-  String _upiId = 'yesnative@upi';
-  String _bankName = 'State Bank of India';
-  String _accountNo = 'XXXX-XXXX-1234';
+  final String _upiId = 'yesnative@upi';
+  final String _bankName = 'State Bank of India';
+  final String _accountNo = 'XXXX-XXXX-1234';
 
   void _showStoreProfileEdit() {
     final nameCtrl = TextEditingController(text: _storeName);
@@ -200,7 +200,7 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: context.colors.success.withOpacity(0.08),
+                  color: context.colors.success.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Row(
@@ -235,17 +235,8 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
     return Scaffold(
       backgroundColor: colors.background,
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: const Text('My Store'),
-        actions: [
-          IconButton(
-            icon: Icon(
-              themeProvider.isDarkMode
-                  ? Icons.light_mode_rounded
-                  : Icons.dark_mode_rounded,
-            ),
-            onPressed: () => themeProvider.toggleTheme(),
-          ),
-        ],
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -263,7 +254,7 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
                         width: 80,
                         height: 80,
                         decoration: BoxDecoration(
-                          color: colors.primary.withOpacity(0.1),
+                          color: colors.primary.withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(Icons.store_rounded,
@@ -592,7 +583,7 @@ class _ThemeToggleCard extends StatelessWidget {
           Switch(
             value: isDark,
             onChanged: (_) => onToggle(),
-            activeColor: colors.primary,
+            activeThumbColor: colors.primary,
           ),
         ],
       ),

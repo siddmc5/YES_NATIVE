@@ -12,18 +12,26 @@ class OrderManager {
   List<OrderModel> get orders => List.unmodifiable(_orders);
 
   void accept(OrderModel order) {
-    _updateStatus(order, OrderStatus.processing);
+    _updateStatus(order, OrderStatus.preparing);
   }
 
-  void process(OrderModel order) {
-    _updateStatus(order, OrderStatus.shipped);
+  void prepare(OrderModel order) {
+    _updateStatus(order, OrderStatus.readyForPickup);
   }
 
-  void ship(OrderModel order) {
-    _updateStatus(order, OrderStatus.delivered);
+  void pickup(OrderModel order) {
+    _updateStatus(order, OrderStatus.pickedUp);
+  }
+
+  void outForDelivery(OrderModel order) {
+    _updateStatus(order, OrderStatus.outForDelivery);
   }
 
   void deliver(OrderModel order) {
+    _updateStatus(order, OrderStatus.delivered);
+  }
+
+  void complete(OrderModel order) {
     _updateStatus(order, OrderStatus.completed);
   }
 
@@ -55,18 +63,22 @@ class OrderManager {
       );
     }
   }
+
   // Sorted getters for each status
-  List<OrderModel> get pending => _sorted(_orders.where((o) => o.status == OrderStatus.pending));
-  List<OrderModel> get processing => _sorted(_orders.where((o) => o.status == OrderStatus.processing));
-  List<OrderModel> get shipped => _sorted(_orders.where((o) => o.status == OrderStatus.shipped));
-  List<OrderModel> get delivered => _sorted(_orders.where((o) => o.status == OrderStatus.delivered));
-  List<OrderModel> get completed => _sorted(_orders.where((o) => o.status == OrderStatus.completed));
-  List<OrderModel> get cancelled => _sorted(_orders.where((o) => o.status == OrderStatus.cancelled));
+  List<OrderModel> get active => _sorted(_orders.where((o) =>
+      o.status != OrderStatus.completed &&
+      o.status != OrderStatus.cancelled &&
+      o.status != OrderStatus.delivered));
+  List<OrderModel> get pending =>
+      _sorted(_orders.where((o) => o.status == OrderStatus.pending));
+  List<OrderModel> get completed => _sorted(_orders.where((o) =>
+      o.status == OrderStatus.completed || o.status == OrderStatus.delivered));
+  List<OrderModel> get cancelled =>
+      _sorted(_orders.where((o) => o.status == OrderStatus.cancelled));
 
   List<OrderModel> _sorted(Iterable<OrderModel> orders) {
     final list = orders.toList();
     list.sort((a, b) => b.createdAt.compareTo(a.createdAt)); // newest first
     return list;
   }
-
 }

@@ -88,7 +88,7 @@ class AnalyticsScreen extends StatelessWidget {
             margin: const EdgeInsets.only(right: 16),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: BoxDecoration(
-              color: colors.primary.withOpacity(0.1),
+              color: colors.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(20),
             ),
             child: DropdownButton<String>(
@@ -339,7 +339,7 @@ class _Bar extends StatelessWidget {
               decoration: BoxDecoration(
                 color: highlight
                     ? color.primary
-                    : color.primary.withOpacity(0.25),
+                    : color.primary.withValues(alpha: 0.25),
                 borderRadius:
                     const BorderRadius.vertical(top: Radius.circular(6)),
               ),
@@ -386,7 +386,7 @@ class _TopProductTile extends StatelessWidget {
             decoration: BoxDecoration(
               color: rank == 1
                   ? Colors.amber.shade50
-                  : colors.primary.withOpacity(0.08),
+                  : colors.primary.withValues(alpha: 0.08),
               shape: BoxShape.circle,
             ),
             child: Center(
@@ -453,18 +453,20 @@ class _TransactionTile extends StatelessWidget {
     switch (status) {
       case OrderStatus.pending:
         return Icons.schedule_rounded;
-      case OrderStatus.confirmed:
-        return Icons.check_circle_outline;
-      case OrderStatus.processing:
-        return Icons.replay_rounded;
-      case OrderStatus.shipped:
+      case OrderStatus.preparing:
+        return Icons.kitchen_rounded;
+      case OrderStatus.readyForPickup:
+        return Icons.shopping_bag_rounded;
+      case OrderStatus.pickedUp:
+        return Icons.handshake_rounded;
+      case OrderStatus.outForDelivery:
         return Icons.local_shipping_rounded;
       case OrderStatus.delivered:
         return Icons.check_circle_rounded;
-      case OrderStatus.cancelled:
-        return Icons.cancel_outlined;
       case OrderStatus.completed:
         return Icons.task_alt_rounded;
+      case OrderStatus.cancelled:
+        return Icons.cancel_outlined;
     }
   }
 
@@ -472,18 +474,20 @@ class _TransactionTile extends StatelessWidget {
     switch (status) {
       case OrderStatus.pending:
         return colors.warning;
-      case OrderStatus.confirmed:
-        return const Color(0xFF2196F3);
-      case OrderStatus.processing:
+      case OrderStatus.preparing:
+        return colors.primary;
+      case OrderStatus.readyForPickup:
         return colors.secondary;
-      case OrderStatus.shipped:
+      case OrderStatus.pickedUp:
+        return const Color(0xFF1976D2);
+      case OrderStatus.outForDelivery:
         return colors.primary;
       case OrderStatus.delivered:
         return colors.success;
-      case OrderStatus.cancelled:
-        return colors.error;
       case OrderStatus.completed:
         return colors.success;
+      case OrderStatus.cancelled:
+        return colors.error;
     }
   }
 
@@ -533,7 +537,7 @@ class _TransactionTile extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: _statusColor(order.status).withOpacity(0.1),
+                  color: _statusColor(order.status).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
@@ -691,9 +695,9 @@ class _ExportButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: color.withOpacity(0.3)),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,

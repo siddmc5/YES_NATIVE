@@ -125,7 +125,7 @@ class _ShimmerLogo extends StatelessWidget {
                 child: CustomPaint(
                   painter: _ShimmerPainter(
                     progress: shimmerValue,
-                    shimmerColor: accentColor.withOpacity(0.55),
+                    shimmerColor: accentColor.withValues(alpha: 0.55),
                   ),
                 ),
               ),

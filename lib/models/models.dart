@@ -62,25 +62,36 @@ class OrderItem {
   });
 }
 
-enum OrderStatus { pending, confirmed, processing, shipped, delivered, cancelled, completed }
+enum OrderStatus {
+  pending,
+  preparing,
+  readyForPickup,
+  pickedUp,
+  outForDelivery,
+  delivered,
+  completed,
+  cancelled
+}
 
 extension OrderStatusExtension on OrderStatus {
   String get label {
     switch (this) {
       case OrderStatus.pending:
         return 'Pending';
-      case OrderStatus.confirmed:
-        return 'Confirmed';
-      case OrderStatus.processing:
-        return 'Processing';
-      case OrderStatus.shipped:
-        return 'Shipped';
+      case OrderStatus.preparing:
+        return 'Preparing';
+      case OrderStatus.readyForPickup:
+        return 'Ready to Pickup';
+      case OrderStatus.pickedUp:
+        return 'Picked Up';
+      case OrderStatus.outForDelivery:
+        return 'Out for Delivery';
       case OrderStatus.delivered:
         return 'Delivered';
-      case OrderStatus.cancelled:
-        return 'Cancelled';
       case OrderStatus.completed:
         return 'Completed';
+      case OrderStatus.cancelled:
+        return 'Rejected';
     }
   }
 }
@@ -198,7 +209,7 @@ class SampleData {
         OrderItem(productName: 'Black Rice Choco Malt', quantity: 3, price: 399),
       ],
       total: 1197,
-      status: OrderStatus.processing,
+      status: OrderStatus.readyForPickup,
       createdAt: DateTime.now().subtract(const Duration(hours: 5)),
       address: '45, HSR Layout, Bengaluru - 560102',
     ),
@@ -211,7 +222,7 @@ class SampleData {
         OrderItem(productName: 'NaturalNourish Porridge', quantity: 2, price: 329),
       ],
       total: 1157,
-      status: OrderStatus.shipped,
+      status: OrderStatus.pickedUp,
       createdAt: DateTime.now().subtract(const Duration(days: 1)),
       address: '8, Koramangala, Bengaluru - 560034',
     ),
@@ -235,9 +246,73 @@ class SampleData {
         OrderItem(productName: 'SlimSure Lite', quantity: 1, price: 449),
       ],
       total: 449,
-      status: OrderStatus.confirmed,
+      status: OrderStatus.preparing,
       createdAt: DateTime.now().subtract(const Duration(days: 1, hours: 3)),
       address: '67, Jayanagar, Bengaluru - 560011',
+    ),
+    OrderModel(
+      orderId: 'YN-2024-0886',
+      customerName: 'Amit Desai',
+      customerPhone: '+91 91234 56780',
+      items: [
+        OrderItem(productName: 'Black Rice Choco Malt', quantity: 2, price: 399),
+      ],
+      total: 798,
+      status: OrderStatus.pending,
+      createdAt: DateTime.now().subtract(const Duration(hours: 1, minutes: 20)),
+      address: '19, Indiranagar, Bengaluru - 560038',
+    ),
+    OrderModel(
+      orderId: 'YN-2024-0885',
+      customerName: 'Neha Patel',
+      customerPhone: '+91 99887 66554',
+      items: [
+        OrderItem(productName: 'Energy Millet Mix', quantity: 1, price: 299),
+        OrderItem(productName: 'NaturalNourish Porridge', quantity: 1, price: 329),
+      ],
+      total: 628,
+      status: OrderStatus.outForDelivery,
+      createdAt: DateTime.now().subtract(const Duration(hours: 18)),
+      address: '34, Whitefield, Bengaluru - 560066',
+    ),
+    OrderModel(
+      orderId: 'YN-2024-0884',
+      customerName: 'Rina Kapoor',
+      customerPhone: '+91 98765 12345',
+      items: [
+        OrderItem(productName: 'MilMil Junior', quantity: 1, price: 349),
+        OrderItem(productName: "Women's Vitality Blend", quantity: 1, price: 499),
+      ],
+      total: 848,
+      status: OrderStatus.completed,
+      createdAt: DateTime.now().subtract(const Duration(days: 3)),
+      address: '90, Malleshwaram, Bengaluru - 560055',
+    ),
+    OrderModel(
+      orderId: 'YN-2024-0883',
+      customerName: 'Karthik Reddy',
+      customerPhone: '+91 93456 77889',
+      items: [
+        OrderItem(productName: 'SlimSure Lite', quantity: 1, price: 449),
+        OrderItem(productName: 'NaturalNourish Porridge', quantity: 1, price: 329),
+      ],
+      total: 778,
+      status: OrderStatus.cancelled,
+      createdAt: DateTime.now().subtract(const Duration(days: 4, hours: 2)),
+      address: '77, Koramangala, Bengaluru - 560034',
+    ),
+    OrderModel(
+      orderId: 'YN-2024-0882',
+      customerName: 'Rohit Sharma',
+      customerPhone: '+91 90321 45678',
+      items: [
+        OrderItem(productName: 'Black Rice Choco Malt', quantity: 1, price: 399),
+        OrderItem(productName: 'Energy Millet Mix', quantity: 2, price: 299),
+      ],
+      total: 997,
+      status: OrderStatus.readyForPickup,
+      createdAt: DateTime.now().subtract(const Duration(hours: 10)),
+      address: '12, MG Road, Bengaluru - 560001',
     ),
   ];
 

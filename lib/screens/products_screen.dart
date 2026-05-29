@@ -650,8 +650,8 @@ class _ProductGridCard extends StatelessWidget {
                               horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
                             color: product.isActive
-                                ? colors.success.withOpacity(0.1)
-                                : colors.textLight.withOpacity(0.1),
+                                ? colors.success.withValues(alpha: 0.1)
+                                : colors.textLight.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
@@ -715,7 +715,7 @@ class _ProductGridCard extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: colors.error.withOpacity(0.1),
+                            color: colors.error.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
@@ -744,7 +744,7 @@ class _ProductGridCard extends StatelessWidget {
   Widget _imagePlaceholder(ThemeColors colors, Color bgColor) {
     return Container(
       width: double.infinity,
-      color: bgColor.withOpacity(0.12),
+      color: bgColor.withValues(alpha: 0.12),
       child: Stack(
         children: [
           Center(
@@ -755,7 +755,7 @@ class _ProductGridCard extends StatelessWidget {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: bgColor.withOpacity(0.2),
+                    color: bgColor.withValues(alpha: 0.2),
                     shape: BoxShape.circle,
                   ),
                   child: Center(

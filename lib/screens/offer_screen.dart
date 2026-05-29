@@ -49,9 +49,10 @@ class _OfferScreenState extends State<OfferScreen> {
     return Scaffold(
       backgroundColor: colors.background,
       appBar: AppBar(
-        title: const Text('Create Offer'),
+        title: const Text('Create Offer', style: TextStyle(color: Colors.white)),
         backgroundColor: colors.bannerGreen,
         foregroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -124,7 +125,7 @@ class _OfferScreenState extends State<OfferScreen> {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
-              value: _selectedProduct,
+              initialValue: _selectedProduct,
               decoration: InputDecoration(
                 labelText: 'Product',
                 labelStyle: TextStyle(color: colors.textMedium),

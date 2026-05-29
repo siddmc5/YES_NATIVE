@@ -6,25 +6,32 @@ import '../services/order_manager.dart';
 class OrderTile extends StatelessWidget {
   final OrderModel order;
   final bool compact;
+  final VoidCallback? onStatusChanged;
 
-  const OrderTile({super.key, required this.order, required this.compact});
+  const OrderTile(
+      {super.key,
+      required this.order,
+      required this.compact,
+      this.onStatusChanged});
 
   Color _statusColor(OrderStatus status, ThemeColors colors) {
     switch (status) {
       case OrderStatus.pending:
         return colors.warning;
-      case OrderStatus.confirmed:
-        return const Color(0xFF2196F3);
-      case OrderStatus.processing:
+      case OrderStatus.preparing:
+        return colors.primary;
+      case OrderStatus.readyForPickup:
         return colors.secondary;
-      case OrderStatus.shipped:
+      case OrderStatus.pickedUp:
+        return const Color(0xFF1976D2);
+      case OrderStatus.outForDelivery:
         return colors.primary;
       case OrderStatus.delivered:
         return colors.success;
-      case OrderStatus.cancelled:
-        return colors.error;
       case OrderStatus.completed:
         return colors.success;
+      case OrderStatus.cancelled:
+        return colors.error;
     }
   }
 
@@ -32,18 +39,20 @@ class OrderTile extends StatelessWidget {
     switch (status) {
       case OrderStatus.pending:
         return colors.warningLight;
-      case OrderStatus.confirmed:
+      case OrderStatus.preparing:
+        return colors.primary.withValues(alpha: 0.08);
+      case OrderStatus.readyForPickup:
+        return colors.secondary.withValues(alpha: 0.1);
+      case OrderStatus.pickedUp:
         return const Color(0xFFE3F2FD);
-      case OrderStatus.processing:
-        return colors.secondary.withOpacity(0.1);
-      case OrderStatus.shipped:
-        return colors.primary.withOpacity(0.08);
+      case OrderStatus.outForDelivery:
+        return colors.primary.withValues(alpha: 0.08);
       case OrderStatus.delivered:
+        return colors.successLight;
+      case OrderStatus.completed:
         return colors.successLight;
       case OrderStatus.cancelled:
         return colors.errorLight;
-      case OrderStatus.completed:
-        return colors.successLight;
     }
   }
 
@@ -86,7 +95,8 @@ class OrderTile extends StatelessWidget {
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
                       color: _statusBg(order.status, colors),
                       borderRadius: BorderRadius.circular(20),
@@ -144,31 +154,61 @@ class OrderTile extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: colors.primary.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.local_shipping_rounded,
+                          size: 16, color: colors.primary),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Tracking: ${order.status.label}',
+                          style: TextStyle(
+                              color: colors.primary,
+                              fontSize: 12,
+                              fontFamily: 'Poppins',
+                              fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     color: colors.background,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Column(
-                    children: order.items.map((item) => Padding(
-                      padding: const EdgeInsets.only(bottom: 4),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text('${item.quantity}x ${item.productName}',
-                              style: TextStyle(
-                                  color: colors.textLight,
-                                  fontSize: 11,
-                                  fontFamily: 'Poppins')),
-                          Text('₹${(item.quantity * item.price).toStringAsFixed(0)}',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  color: colors.textDark,
-                                  fontSize: 11,
-                                  fontFamily: 'Poppins')),
-                        ],
-                      ),
-                    )).toList(),
+                    children: order.items
+                        .map((item) => Padding(
+                              padding: const EdgeInsets.only(bottom: 4),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text('${item.quantity}x ${item.productName}',
+                                      style: TextStyle(
+                                          color: colors.textLight,
+                                          fontSize: 11,
+                                          fontFamily: 'Poppins')),
+                                  Text(
+                                      '₹${(item.quantity * item.price).toStringAsFixed(0)}',
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          color: colors.textDark,
+                                          fontSize: 11,
+                                          fontFamily: 'Poppins')),
+                                ],
+                              ),
+                            ))
+                        .toList(),
                   ),
                 ),
               ],
@@ -195,111 +235,140 @@ class OrderTile extends StatelessWidget {
                 ],
               ),
               // Action buttons based on order status
-              if (!compact && order.status == OrderStatus.pending) ...[
+              if (!compact) ...[
                 const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () {
-                          OrderManager().reject(order);
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                            content: const Text('Order rejected'),
-                            action: SnackBarAction(label: 'Undo', onPressed: () => OrderManager().undoReject()),
-                            duration: const Duration(seconds: 5),
-                          ));
-                        },
-                        style: OutlinedButton.styleFrom(
-                          side: BorderSide(color: colors.error),
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                if (order.status == OrderStatus.pending) ...[
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () {
+                            OrderManager().reject(order);
+                            onStatusChanged?.call();
+                            final messenger = ScaffoldMessenger.of(context);
+                            messenger.hideCurrentSnackBar();
+                            final controller = messenger.showSnackBar(SnackBar(
+                              behavior: SnackBarBehavior.floating,
+                              margin: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 12),
+                              content: const Text('Order rejected'),
+                              action: SnackBarAction(
+                                  label: 'Undo',
+                                  onPressed: () {
+                                    OrderManager().undoReject();
+                                    onStatusChanged?.call();
+                                  }),
+                              duration: const Duration(seconds: 3),
+                            ));
+                            Future.delayed(const Duration(seconds: 3), () {
+                              controller.close();
+                            });
+                          },
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(color: colors.error),
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8)),
+                          ),
+                          child: Text('Reject',
+                              style: TextStyle(
+                                  color: colors.error,
+                                  fontFamily: 'Poppins',
+                                  fontSize: 13)),
                         ),
-                        child: Text('Reject',
-                            style: TextStyle(
-                                color: colors.error,
-                                fontFamily: 'Poppins',
-                                fontSize: 13)),
                       ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          OrderManager().accept(order);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text('Order accepted, now processing')));
-                        },
-                        style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 8)),
-                        child: const Text('Accept'),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            OrderManager().accept(order);
+                            onStatusChanged?.call();
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: colors.primary,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8)),
+                          ),
+                          child: const Text('Accept'),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
-              if (!compact && order.status == OrderStatus.processing) ...[
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          OrderManager().process(order);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text('Order moved to shipped')));
-                        },
-                        style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 8)),
-                        child: const Text('Ship'),
+                    ],
+                  ),
+                ] else if (order.status == OrderStatus.preparing) ...[
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        OrderManager().prepare(order);
+                        onStatusChanged?.call();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: colors.primary,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
                       ),
+                      child: const Text('Mark Ready'),
                     ),
-                  ],
-                ),
-              ],
-              if (!compact && order.status == OrderStatus.shipped) ...[
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          OrderManager().ship(order);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text('Order moved to delivered')));
-                        },
-                        style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 8)),
-                        child: const Text('Deliver'),
+                  ),
+                ] else if (order.status == OrderStatus.readyForPickup) ...[
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        OrderManager().pickup(order);
+                        onStatusChanged?.call();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: colors.primary,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
                       ),
+                      child: const Text('Picked Up'),
                     ),
-                  ],
-                ),
-              ],
-              if (!compact && order.status == OrderStatus.delivered) ...[
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          OrderManager().deliver(order);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Order completed')));
-                        },
-                        style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 8)),
-                        child: const Text('Complete'),
+                  ),
+                ] else if (order.status == OrderStatus.pickedUp) ...[
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        OrderManager().outForDelivery(order);
+                        onStatusChanged?.call();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: colors.primary,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
                       ),
+                      child: const Text('Out for Delivery'),
                     ),
-                  ],
-                ),
+                  ),
+                ] else if (order.status == OrderStatus.outForDelivery) ...[
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        OrderManager().deliver(order);
+                        onStatusChanged?.call();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: colors.primary,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                      ),
+                      child: const Text('Delivered'),
+                    ),
+                  ),
+                ],
               ],
               if (!compact &&
                   (order.status == OrderStatus.completed ||
-                      order.status == OrderStatus.cancelled)) ...[
+                      order.status == OrderStatus.cancelled ||
+                      order.status == OrderStatus.delivered)) ...[
                 const SizedBox(height: 10),
                 Text('No further actions',
                     style: TextStyle(
@@ -323,7 +392,7 @@ class OrderTile extends StatelessWidget {
         height: MediaQuery.of(context).size.height * 0.7,
         decoration: BoxDecoration(
           color: colors.cardBackground,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         ),
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -392,7 +461,7 @@ class OrderTile extends StatelessWidget {
                         decoration: BoxDecoration(
                           border: Border(
                             bottom: BorderSide(
-                                color: colors.border.withOpacity(0.3)),
+                                color: colors.border.withValues(alpha: 0.3)),
                           ),
                         ),
                         child: Row(
@@ -424,8 +493,7 @@ class OrderTile extends StatelessWidget {
                               fontWeight: FontWeight.w700,
                               color: colors.textDark,
                               fontFamily: 'Poppins')),
-                      Text(
-                          '₹${order.total.toStringAsFixed(0)}',
+                      Text('₹${order.total.toStringAsFixed(0)}',
                           style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w700,

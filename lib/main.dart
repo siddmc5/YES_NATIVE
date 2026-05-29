@@ -92,7 +92,7 @@ class YesNativeVendorApp extends StatelessWidget {
         ),
         navigationBarTheme: NavigationBarThemeData(
           backgroundColor: Colors.white,
-          indicatorColor: const Color(0xFF2D5016).withOpacity(0.12),
+          indicatorColor: const Color(0xFF2D5016).withValues(alpha: 0.12),
         ),
       ),
       darkTheme: ThemeData(
@@ -156,7 +156,7 @@ class YesNativeVendorApp extends StatelessWidget {
         ),
         navigationBarTheme: NavigationBarThemeData(
           backgroundColor: const Color(0xFF1E1E1E),
-          indicatorColor: const Color(0xFF6BAA6B).withOpacity(0.2),
+          indicatorColor: const Color(0xFF6BAA6B).withValues(alpha: 0.2),
         ),
       ),
       home: const SplashScreen(),
