@@ -64,10 +64,9 @@ class OrderItem {
 
 enum OrderStatus {
   pending,
-  preparing,
-  readyForPickup,
-  pickedUp,
-  outForDelivery,
+  confirmed,
+  processing,
+  shipped,
   delivered,
   completed,
   cancelled
@@ -78,14 +77,12 @@ extension OrderStatusExtension on OrderStatus {
     switch (this) {
       case OrderStatus.pending:
         return 'Pending';
-      case OrderStatus.preparing:
-        return 'Preparing';
-      case OrderStatus.readyForPickup:
-        return 'Ready to Pickup';
-      case OrderStatus.pickedUp:
-        return 'Picked Up';
-      case OrderStatus.outForDelivery:
-        return 'Out for Delivery';
+      case OrderStatus.confirmed:
+        return 'Confirmed';
+      case OrderStatus.processing:
+        return 'Processing';
+      case OrderStatus.shipped:
+        return 'Shipped';
       case OrderStatus.delivered:
         return 'Delivered';
       case OrderStatus.completed:
@@ -209,7 +206,7 @@ class SampleData {
         OrderItem(productName: 'Black Rice Choco Malt', quantity: 3, price: 399),
       ],
       total: 1197,
-      status: OrderStatus.readyForPickup,
+      status: OrderStatus.confirmed,
       createdAt: DateTime.now().subtract(const Duration(hours: 5)),
       address: '45, HSR Layout, Bengaluru - 560102',
     ),
@@ -222,7 +219,7 @@ class SampleData {
         OrderItem(productName: 'NaturalNourish Porridge', quantity: 2, price: 329),
       ],
       total: 1157,
-      status: OrderStatus.pickedUp,
+      status: OrderStatus.processing,
       createdAt: DateTime.now().subtract(const Duration(days: 1)),
       address: '8, Koramangala, Bengaluru - 560034',
     ),
@@ -246,7 +243,7 @@ class SampleData {
         OrderItem(productName: 'SlimSure Lite', quantity: 1, price: 449),
       ],
       total: 449,
-      status: OrderStatus.preparing,
+      status: OrderStatus.processing,
       createdAt: DateTime.now().subtract(const Duration(days: 1, hours: 3)),
       address: '67, Jayanagar, Bengaluru - 560011',
     ),
@@ -271,7 +268,7 @@ class SampleData {
         OrderItem(productName: 'NaturalNourish Porridge', quantity: 1, price: 329),
       ],
       total: 628,
-      status: OrderStatus.outForDelivery,
+      status: OrderStatus.shipped,
       createdAt: DateTime.now().subtract(const Duration(hours: 18)),
       address: '34, Whitefield, Bengaluru - 560066',
     ),
@@ -310,7 +307,7 @@ class SampleData {
         OrderItem(productName: 'Energy Millet Mix', quantity: 2, price: 299),
       ],
       total: 997,
-      status: OrderStatus.readyForPickup,
+      status: OrderStatus.confirmed,
       createdAt: DateTime.now().subtract(const Duration(hours: 10)),
       address: '12, MG Road, Bengaluru - 560001',
     ),

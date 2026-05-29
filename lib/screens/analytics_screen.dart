@@ -453,13 +453,11 @@ class _TransactionTile extends StatelessWidget {
     switch (status) {
       case OrderStatus.pending:
         return Icons.schedule_rounded;
-      case OrderStatus.preparing:
+      case OrderStatus.confirmed:
+        return Icons.check_circle_outline;
+      case OrderStatus.processing:
         return Icons.kitchen_rounded;
-      case OrderStatus.readyForPickup:
-        return Icons.shopping_bag_rounded;
-      case OrderStatus.pickedUp:
-        return Icons.handshake_rounded;
-      case OrderStatus.outForDelivery:
+      case OrderStatus.shipped:
         return Icons.local_shipping_rounded;
       case OrderStatus.delivered:
         return Icons.check_circle_rounded;
@@ -474,14 +472,12 @@ class _TransactionTile extends StatelessWidget {
     switch (status) {
       case OrderStatus.pending:
         return colors.warning;
-      case OrderStatus.preparing:
+      case OrderStatus.confirmed:
+        return const Color(0xFF2196F3);
+      case OrderStatus.processing:
         return colors.primary;
-      case OrderStatus.readyForPickup:
+      case OrderStatus.shipped:
         return colors.secondary;
-      case OrderStatus.pickedUp:
-        return const Color(0xFF1976D2);
-      case OrderStatus.outForDelivery:
-        return colors.primary;
       case OrderStatus.delivered:
         return colors.success;
       case OrderStatus.completed:
