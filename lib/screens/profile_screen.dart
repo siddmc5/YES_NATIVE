@@ -4,6 +4,7 @@ import '../theme.dart';
 import '../theme_provider.dart';
 import '../screens/login_screen.dart';
 import '../screens/main_shell.dart';
+import '../services/api_service.dart';
 
 class VendorProfileScreen extends StatefulWidget {
   const VendorProfileScreen({super.key});
@@ -13,16 +14,53 @@ class VendorProfileScreen extends StatefulWidget {
 }
 
 class _VendorProfileScreenState extends State<VendorProfileScreen> {
-  String _storeName = 'Yes Native Store';
-  String _storeEmail = 'yesnative@vendor.com';
-  String _storePhone = '+91 98765 43210';
-  String _storeAddress = '12, MG Road, Bengaluru - 560001';
-  String _storeDescription =
-      'Premium traditional superfoods and wellness products since 2020.';
+  String _storeName = '';
+  String _storeEmail = '';
+  String _storePhone = '';
+  String _storeAddress = '';
+  String _storeDescription = '';
+  bool _isLoading = true;
 
-  final String _upiId = 'yesnative@upi';
-  final String _bankName = 'State Bank of India';
-  final String _accountNo = 'XXXX-XXXX-1234';
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    setState(() => _isLoading = true);
+    try {
+      final profile = await ApiService.instance.getProfile();
+      if (profile != null) {
+        setState(() {
+          _storeName = profile['businessName'] as String? ?? profile['displayName'] as String? ?? 'Yes Native Store';
+          _storeEmail = profile['email'] as String? ?? '';
+          _storePhone = profile['phone'] as String? ?? '';
+          _storeAddress = profile['address'] as String? ?? '';
+          _storeDescription = 'Premium traditional superfoods and wellness products.';
+        });
+      }
+    } catch (_) {
+      // Use defaults if API fails
+      setState(() {
+        _storeName = 'Yes Native Store';
+        _storeEmail = 'vendor@yesnative.com';
+        _storePhone = '+91 98765 43210';
+        _storeAddress = '12, MG Road, Bengaluru - 560001';
+        _storeDescription = 'Premium traditional superfoods and wellness products since 2020.';
+      });
+    }
+    if (mounted) setState(() => _isLoading = false);
+  }
+
+  Future<void> _saveProfile(Map<String, String> data) async {
+    await ApiService.instance.updateProfile({
+      'businessName': data['businessName'],
+      'phone': data['phone'],
+      'address': data['address'],
+      'displayName': data['displayName'],
+    });
+  }
 
   void _showStoreProfileEdit() {
     final nameCtrl = TextEditingController(text: _storeName);
@@ -78,7 +116,7 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {
+                  onPressed: () async {
                     setState(() {
                       _storeName = nameCtrl.text;
                       _storeEmail = emailCtrl.text;
@@ -86,7 +124,13 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
                       _storeAddress = addrCtrl.text;
                       _storeDescription = descCtrl.text;
                     });
-                    Navigator.pop(ctx);
+                    await _saveProfile({
+                      'businessName': nameCtrl.text,
+                      'displayName': nameCtrl.text,
+                      'phone': phoneCtrl.text,
+                      'address': addrCtrl.text,
+                    });
+                    if (ctx.mounted) Navigator.pop(ctx);
                   },
                   child: const Text('Save Changes'),
                 ),
@@ -168,7 +212,7 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
               _PaymentOption(
                 icon: Icons.account_balance_rounded,
                 title: 'Bank Account',
-                subtitle: '$_bankName • $_accountNo',
+                subtitle: 'State Bank of India • XXXX-XXXX-1234',
                 colors: context.colors,
                 onTap: () {},
               ),
@@ -176,7 +220,7 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
               _PaymentOption(
                 icon: Icons.phone_android_rounded,
                 title: 'UPI ID',
-                subtitle: _upiId,
+                subtitle: 'yesnative@upi',
                 colors: context.colors,
                 onTap: () {},
               ),
@@ -200,7 +244,7 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: context.colors.success.withValues(alpha: 0.08),
+                  color: context.colors.success.withOpacity(0.08),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Row(
@@ -235,135 +279,146 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
     return Scaffold(
       backgroundColor: colors.background,
       appBar: AppBar(
-        automaticallyImplyLeading: false,
         title: const Text('My Store'),
+        actions: [
+          IconButton(
+            icon: Icon(
+              themeProvider.isDarkMode
+                  ? Icons.light_mode_rounded
+                  : Icons.dark_mode_rounded,
+            ),
+            onPressed: () => themeProvider.toggleTheme(),
+          ),
+        ],
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // Store header
-            Container(
-              width: double.infinity,
-              color: colors.cardBackground,
-              padding: const EdgeInsets.all(24),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
               child: Column(
                 children: [
-                  Stack(
-                    children: [
-                      Container(
-                        width: 80,
-                        height: 80,
-                        decoration: BoxDecoration(
-                          color: colors.primary.withValues(alpha: 0.1),
-                          shape: BoxShape.circle,
+                  // Store header
+                  Container(
+                    width: double.infinity,
+                    color: colors.cardBackground,
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      children: [
+                        Stack(
+                          children: [
+                            Container(
+                              width: 80,
+                              height: 80,
+                              decoration: BoxDecoration(
+                                color: colors.primary.withOpacity(0.1),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(Icons.store_rounded,
+                                  color: colors.primary, size: 40),
+                            ),
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: colors.primary,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.edit,
+                                    color: Colors.white, size: 12),
+                              ),
+                            ),
+                          ],
                         ),
-                        child: Icon(Icons.store_rounded,
-                            color: colors.primary, size: 40),
+                        const SizedBox(height: 14),
+                        Text(_storeName,
+                            style: AppTextStyles.heading2.copyWith(color: colors.primary)),
+                        const SizedBox(height: 4),
+                        Text(_storeEmail,
+                            style: TextStyle(
+                                color: colors.textMedium,
+                                fontFamily: 'Poppins',
+                                fontSize: 13)),
+                        const SizedBox(height: 12),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _StoreStatPill(label: 'Products', value: '—', colors: colors),
+                            const SizedBox(width: 12),
+                            _StoreStatPill(label: 'Orders', value: '—', colors: colors),
+                            const SizedBox(width: 12),
+                            _StoreStatPill(label: 'Status', value: 'Active', colors: colors),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Store Profile
+                  _MenuSection(
+                    title: 'Store Management',
+                    colors: colors,
+                    items: [
+                      _MenuItemData(
+                        icon: Icons.storefront_outlined,
+                        label: 'Store Profile',
+                        subtitle: 'Name, Email, Address, Description',
+                        onTap: _showStoreProfileEdit,
                       ),
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            color: colors.primary,
-                            shape: BoxShape.circle,
+                      _MenuItemData(
+                        icon: Icons.payment_outlined,
+                        label: 'Payment Settings',
+                        subtitle: 'Bank, UPI, QR, Wallet',
+                        onTap: _showPaymentSettings,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Theme toggle
+                  _ThemeToggleCard(
+                    colors: colors,
+                    isDark: themeProvider.isDarkMode,
+                    onToggle: () => themeProvider.toggleTheme(),
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Logout
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.of(context).pushAndRemoveUntil(
+                            FadeSlideRoute(page: const LoginScreen()),
+                            (_) => false,
+                          );
+                        },
+                        icon: Icon(Icons.logout_rounded, color: colors.error),
+                        label: const Text(
+                          'Logout',
+                          style: TextStyle(
+                            color: Colors.red,
+                            fontFamily: 'Poppins',
+                            fontWeight: FontWeight.w600,
                           ),
-                          child: const Icon(Icons.edit,
-                              color: Colors.white, size: 12),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: colors.error),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
                         ),
                       ),
-                    ],
+                    ),
                   ),
-                  const SizedBox(height: 14),
-                  Text(_storeName,
-                      style: AppTextStyles.heading2.copyWith(color: colors.primary)),
-                  const SizedBox(height: 4),
-                  Text(_storeEmail,
-                      style: TextStyle(
-                          color: colors.textMedium,
-                          fontFamily: 'Poppins',
-                          fontSize: 13)),
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _StoreStatPill(label: 'Products', value: '8', colors: colors),
-                      const SizedBox(width: 12),
-                      _StoreStatPill(label: 'Orders', value: '312', colors: colors),
-                      const SizedBox(width: 12),
-                      _StoreStatPill(label: 'Rating', value: '4.8 ★', colors: colors),
-                    ],
-                  ),
+                  const SizedBox(height: 30),
                 ],
               ),
             ),
-            const SizedBox(height: 10),
-
-            // Store Profile
-            _MenuSection(
-              title: 'Store Management',
-              colors: colors,
-              items: [
-                _MenuItemData(
-                  icon: Icons.storefront_outlined,
-                  label: 'Store Profile',
-                  subtitle: 'Name, Email, Address, Description',
-                  onTap: _showStoreProfileEdit,
-                ),
-                _MenuItemData(
-                  icon: Icons.payment_outlined,
-                  label: 'Payment Settings',
-                  subtitle: 'Bank, UPI, QR, Wallet',
-                  onTap: _showPaymentSettings,
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-
-            // Theme toggle
-            _ThemeToggleCard(
-              colors: colors,
-              isDark: themeProvider.isDarkMode,
-              onToggle: () => themeProvider.toggleTheme(),
-            ),
-            const SizedBox(height: 10),
-
-            // Logout
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () {
-                    Navigator.of(context).pushAndRemoveUntil(
-                      FadeSlideRoute(page: const LoginScreen()),
-                      (_) => false,
-                    );
-                  },
-                  icon: Icon(Icons.logout_rounded, color: colors.error),
-                  label: const Text(
-                    'Logout',
-                    style: TextStyle(
-                      color: Colors.red,
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    side: BorderSide(color: colors.error),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 30),
-          ],
-        ),
-      ),
     );
   }
 }
@@ -583,7 +638,7 @@ class _ThemeToggleCard extends StatelessWidget {
           Switch(
             value: isDark,
             onChanged: (_) => onToggle(),
-            activeThumbColor: colors.primary,
+            activeColor: colors.primary,
           ),
         ],
       ),

@@ -3,6 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../theme.dart';
 import '../theme_provider.dart';
+import '../services/auth_service.dart';
+import '../services/api_service.dart';
 import 'main_shell.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -14,6 +16,7 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStateMixin {
   bool _isLoading = false;
+  String? _errorMessage;
   late final AnimationController _animController;
   late final Animation<Offset> _slideAnim;
   late final Animation<double> _fadeAnim;
@@ -48,12 +51,34 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   }
 
   void _login() async {
-    setState(() => _isLoading = true);
-    await Future.delayed(const Duration(seconds: 1));
-    if (mounted) {
-      Navigator.of(context).pushReplacement(
-        FadeSlideRoute(page: const MainShell()),
-      );
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      // 1. Sign in with Google via Firebase Auth
+      await AuthService.instance.signInWithGoogle();
+
+      // 2. Register/fetch user from MongoDB via backend
+      //    This creates the user document on first sign-in.
+      await ApiService.instance.login(role: 'vendor');
+
+      // 3. Navigate to main app
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          FadeSlideRoute(page: const MainShell()),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = e.toString().contains('cancelled')
+              ? null
+              : 'Sign in failed. Please try again.';
+        });
+      }
     }
   }
 
@@ -148,6 +173,21 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                         ),
                       ),
                       const Spacer(flex: 2),
+
+                      // Error message
+                      if (_errorMessage != null)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 16),
+                          child: Text(
+                            _errorMessage!,
+                            style: GoogleFonts.poppins(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: colors.error,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
 
                       // Google Sign-In Button
                       SizedBox(

@@ -43,3 +43,18 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Node.js / Backend
+backend/node_modules/
+backend/package-lock.json
+
+# Firebase service account (contains sensitive keys)
+backend/config/firebase-service-account.json
+
+# Log files
+*.log
+server*.log
+flutter_run*.log
+
+# Misc
+nul

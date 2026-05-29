@@ -1,32 +1,47 @@
-import '../models/models.dart';
+import 'api_service.dart';
 
 class OfferManager {
-  // Singleton pattern
   OfferManager._privateConstructor();
   static final OfferManager _instance = OfferManager._privateConstructor();
   factory OfferManager() => _instance;
 
-  // Internal mutable offers list, initialized from SampleData.offers
-  final List<Map<String, dynamic>> _offers = List.from(SampleData.offers);
+  List<Map<String, dynamic>> _offers = [];
 
-  // Public getter returning unmodifiable view
   List<Map<String, dynamic>> get offers => List.unmodifiable(_offers);
 
-  // Add a new offer to the top of the list
-  void addOffer({
+  /// Fetch all offers from the backend.
+  Future<void> loadOffers() async {
+    _offers = await ApiService.instance.getOffers();
+  }
+
+  /// Add a new offer via the backend API.
+  Future<bool> addOffer({
     required String title,
     required String discount,
     required String code,
     required String productName,
-  }) {
-    final offer = {
+  }) async {
+    final success = await ApiService.instance.createOffer({
       'title': title,
       'discount': discount,
       'code': code,
       'productName': productName,
-    };
-    _offers.insert(0, offer);
-    // TODO: Persist to local storage if needed.
+    });
+
+    if (success) {
+      // Reload to get the latest list from the backend
+      await loadOffers();
+    }
+    return success;
+  }
+
+  /// Delete an offer by its MongoDB _id.
+  Future<bool> deleteOffer(String offerId) async {
+    final success = await ApiService.instance.deleteOffer(offerId);
+    if (success) {
+      _offers.removeWhere((o) => o['_id'] == offerId);
+    }
+    return success;
   }
 
   // Remove an offer at a specific index.

@@ -1,9 +1,10 @@
+import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:uuid/uuid.dart';
 import '../theme.dart';
 import '../models/models.dart';
+import '../services/api_service.dart';
 
 class ProductsScreen extends StatefulWidget {
   const ProductsScreen({super.key});
@@ -16,6 +17,8 @@ class _ProductsScreenState extends State<ProductsScreen> {
   final _searchController = TextEditingController();
   String _searchQuery = '';
   String _selectedCategory = 'All';
+  List<ProductModel> _products = [];
+  bool _isLoading = true;
 
   final _categories = [
     'All',
@@ -27,8 +30,46 @@ class _ProductsScreenState extends State<ProductsScreen> {
     'Natural Nourishment',
   ];
 
+  @override
+  void initState() {
+    super.initState();
+    _loadProducts();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadProducts() async {
+    setState(() => _isLoading = true);
+    try {
+      final data = await ApiService.instance.getProducts();
+      _products = data.map((json) => _productFromJson(json)).toList();
+    } catch (_) {
+      _products = [];
+    }
+    if (mounted) setState(() => _isLoading = false);
+  }
+
+  ProductModel _productFromJson(Map<String, dynamic> json) {
+    return ProductModel(
+      id: json['_id'] as String? ?? json['id'] as String? ?? '',
+      name: json['name'] as String? ?? '',
+      category: json['category'] as String? ?? '',
+      price: (json['price'] as num?)?.toDouble() ?? 0,
+      stock: json['stock'] as int? ?? 0,
+      rating: (json['rating'] as num?)?.toDouble() ?? 0,
+      reviews: json['reviews'] as int? ?? 0,
+      tags: (json['tags'] as List<dynamic>?)?.cast<String>() ?? [],
+      isActive: json['isActive'] as bool? ?? true,
+      imageUrl: json['imageUrl'] as String? ?? '',
+    );
+  }
+
   List<ProductModel> get _filteredProducts {
-    List<ProductModel> list = SampleData.products;
+    List<ProductModel> list = _products;
     if (_selectedCategory != 'All') {
       list = list.where((p) => p.category == _selectedCategory).toList();
     }
@@ -41,12 +82,6 @@ class _ProductsScreenState extends State<ProductsScreen> {
     return list;
   }
 
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
   Future<void> _addProduct() async {
     final result = await showModalBottomSheet<Map<String, dynamic>>(
       context: context,
@@ -57,23 +92,59 @@ class _ProductsScreenState extends State<ProductsScreen> {
 
     if (result == null || !mounted) return;
 
-    setState(() {
-      SampleData.products.insert(
-        0,
-        ProductModel(
-          id: const Uuid().v4(),
-          name: result['name'] as String,
-          category: result['category'] as String,
-          price: result['price'] as double,
-          stock: result['stock'] as int,
-          rating: 0,
-          reviews: 0,
-          tags: [],
-          isActive: true,
-          imageBytes: result['imageBytes'] as Uint8List?,
-        ),
-      );
+    // Convert picked image to base64 data URL, if any
+    String imageUrl = '';
+    final imageBytes = result['imageBytes'] as Uint8List?;
+    if (imageBytes != null && imageBytes.isNotEmpty) {
+      imageUrl =
+          'data:image/jpeg;base64,${base64Encode(imageBytes)}';
+    }
+
+    // Save to backend
+    final success = await ApiService.instance.createProduct({
+      'name': result['name'],
+      'category': result['category'],
+      'price': result['price'],
+      'stock': result['stock'],
+      'imageUrl': imageUrl,
     });
+
+    if (success) {
+      await _loadProducts();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Product added successfully')),
+        );
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to add product')),
+        );
+      }
+    }
+  }
+
+  Future<void> _toggleProduct(ProductModel product) async {
+    final success = await ApiService.instance.updateProduct(
+      product.id,
+      {'isActive': !product.isActive},
+    );
+    if (success) {
+      await _loadProducts();
+    }
+  }
+
+  Future<void> _deleteProduct(ProductModel product) async {
+    final success = await ApiService.instance.deleteProduct(product.id);
+    if (success) {
+      await _loadProducts();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Product deleted')),
+        );
+      }
+    }
   }
 
   @override
@@ -87,150 +158,147 @@ class _ProductsScreenState extends State<ProductsScreen> {
         title: const Text('Products'),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _addProduct,
+        onPressed: _isLoading ? null : _addProduct,
         backgroundColor: colors.primary,
         foregroundColor: Colors.white,
         elevation: 2,
         child: const Icon(Icons.add_rounded),
       ),
-      body: Column(
-        children: [
-          // Persistent search bar
-          Container(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-            color: colors.background,
-            child: TextField(
-              controller: _searchController,
-              onChanged: (v) => setState(() => _searchQuery = v),
-              decoration: InputDecoration(
-                hintText: 'Search products...',
-                prefixIcon: const Icon(Icons.search_rounded, size: 20),
-                suffixIcon: _searchQuery.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear_rounded, size: 18),
-                        onPressed: () {
-                          _searchController.clear();
-                          setState(() => _searchQuery = '');
-                        },
-                      )
-                    : null,
-                filled: true,
-                fillColor: colors.cardBackground,
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: colors.border),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: colors.border),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: colors.primary, width: 1.5),
-                ),
-              ),
-            ),
-          ),
-
-          // Category filter chips
-          SizedBox(
-            height: 44,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: _categories.length,
-              itemBuilder: (ctx, i) {
-                final cat = _categories[i];
-                final isSelected = cat == _selectedCategory;
-                return GestureDetector(
-                  onTap: () => setState(() => _selectedCategory = cat),
-                  child: Container(
-                    margin: const EdgeInsets.only(right: 8),
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? colors.primary
-                          : colors.cardBackground,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: isSelected ? colors.primary : colors.border,
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
+              children: [
+                // Persistent search bar
+                Container(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                  color: colors.background,
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: (v) => setState(() => _searchQuery = v),
+                    decoration: InputDecoration(
+                      hintText: 'Search products...',
+                      prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                      suffixIcon: _searchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear_rounded, size: 18),
+                              onPressed: () {
+                                _searchController.clear();
+                                setState(() => _searchQuery = '');
+                              },
+                            )
+                          : null,
+                      filled: true,
+                      fillColor: colors.cardBackground,
+                      contentPadding:
+                          const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: colors.border),
                       ),
-                    ),
-                    child: Center(
-                      child: Text(
-                        cat,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: isSelected ? Colors.white : colors.textMedium,
-                          fontFamily: 'Poppins',
-                        ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: colors.border),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: colors.primary, width: 1.5),
                       ),
                     ),
                   ),
-                );
-              },
-            ),
-          ),
+                ),
 
-          // Product count
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-            child: Row(
-              children: [
-                Text('${filtered.length} products',
-                    style: TextStyle(color: colors.textLight, fontSize: 12, fontFamily: 'Poppins')),
-              ],
-            ),
-          ),
-
-          // Products grid
-          Expanded(
-            child: filtered.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.search_off_rounded,
-                            size: 48, color: colors.textLight),
-                        const SizedBox(height: 12),
-                        Text('No products found',
-                            style: TextStyle(
-                                color: colors.textMedium,
-                                fontSize: 16,
-                                fontFamily: 'Poppins')),
-                      ],
-                    ),
-                  )
-                : GridView.builder(
-                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 100),
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      childAspectRatio: 0.7,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                    ),
-                    itemCount: filtered.length,
+                // Category filter chips
+                SizedBox(
+                  height: 44,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: _categories.length,
                     itemBuilder: (ctx, i) {
-                      final product = filtered[i];
-                      return _ProductGridCard(
-                        product: product,
-                        onToggle: () => setState(() {
-                          product.isActive = !product.isActive;
-                        }),
-                        onDelete: () => setState(() {
-                          SampleData.products
-                              .removeWhere((p) => p.id == product.id);
-                        }),
+                      final cat = _categories[i];
+                      final isSelected = cat == _selectedCategory;
+                      return GestureDetector(
+                        onTap: () => setState(() => _selectedCategory = cat),
+                        child: Container(
+                          margin: const EdgeInsets.only(right: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? colors.primary
+                                : colors.cardBackground,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: isSelected ? colors.primary : colors.border,
+                            ),
+                          ),
+                          child: Center(
+                            child: Text(
+                              cat,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: isSelected ? Colors.white : colors.textMedium,
+                                fontFamily: 'Poppins',
+                              ),
+                            ),
+                          ),
+                        ),
                       );
                     },
                   ),
-          ),
-        ],
-      ),
+                ),
+
+                // Product count
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                  child: Row(
+                    children: [
+                      Text('${filtered.length} products',
+                          style: TextStyle(color: colors.textLight, fontSize: 12, fontFamily: 'Poppins')),
+                    ],
+                  ),
+                ),
+
+                // Products grid
+                Expanded(
+                  child: filtered.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.search_off_rounded,
+                                  size: 48, color: colors.textLight),
+                              const SizedBox(height: 12),
+                              Text('No products found',
+                                  style: TextStyle(
+                                      color: colors.textMedium,
+                                      fontSize: 16,
+                                      fontFamily: 'Poppins')),
+                            ],
+                          ),
+                        )
+                      : GridView.builder(
+                          padding: const EdgeInsets.fromLTRB(16, 4, 16, 100),
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            childAspectRatio: 0.7,
+                            crossAxisSpacing: 12,
+                            mainAxisSpacing: 12,
+                          ),
+                          itemCount: filtered.length,
+                          itemBuilder: (ctx, i) {
+                            final product = filtered[i];
+                            return _ProductGridCard(
+                              product: product,
+                              onToggle: () => _toggleProduct(product),
+                              onDelete: () => _deleteProduct(product),
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
     );
   }
 }
@@ -575,7 +643,6 @@ class _ProductGridCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.colors;
     final bgColor = _generateColor(product.id);
-    final hasImage = product.imageBytes != null;
     final hasAssetImage = product.imageUrl.isNotEmpty;
 
     return Container(
@@ -593,22 +660,8 @@ class _ProductGridCard extends StatelessWidget {
               borderRadius:
                   const BorderRadius.vertical(top: Radius.circular(13)),
               child: hasAssetImage
-                  ? Image.asset(
-                      product.imageUrl,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _imagePlaceholder(
-                          colors, bgColor),
-                    )
-                  : hasImage
-                      ? Image.memory(
-                          product.imageBytes!,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _imagePlaceholder(
-                              colors, bgColor),
-                        )
-                      : _imagePlaceholder(colors, bgColor),
+                  ? _buildProductImage(colors, bgColor)
+                  : _imagePlaceholder(colors, bgColor),
             ),
           ),
 
@@ -738,6 +791,31 @@ class _ProductGridCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildProductImage(ThemeColors colors, Color bgColor) {
+    final url = product.imageUrl;
+    if (url.startsWith('data:image/')) {
+      try {
+        final base64Data = url.split(',').last;
+        final bytes = base64Decode(base64Data);
+        return Image.memory(
+          bytes,
+          width: double.infinity,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _imagePlaceholder(colors, bgColor),
+        );
+      } catch (_) {
+        return _imagePlaceholder(colors, bgColor);
+      }
+    }
+    // Fallback to asset images
+    return Image.asset(
+      url,
+      width: double.infinity,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => _imagePlaceholder(colors, bgColor),
     );
   }
 
