@@ -104,20 +104,12 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                   child: Column(
                     children: [
                       const SizedBox(height: 40),
-                      Image.asset(
-                        'assets/images/logo.png',
-                        width: 220,
-                        height: 220,
-                        fit: BoxFit.contain,
-                      ),
-                      const SizedBox(height: 32),
-                      Text(
-                        'Functional Superfoods',
-                        style: GoogleFonts.poppins(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.white.withValues(alpha: 0.95),
-                          letterSpacing: 2.2,
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: Image.asset(
+                          'assets/images/logo.png',
+                          width: 200,
+                          fit: BoxFit.contain,
                         ),
                       ),
                       const SizedBox(height: 36),

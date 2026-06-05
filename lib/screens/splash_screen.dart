@@ -142,9 +142,8 @@ class _AppLogo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Image.asset(
-      'assets/images/leaf_logo.png',
-      width: 150,
-      height: 150,
+      'assets/images/logo.png',
+      width: 140,
     );
   }
 }
