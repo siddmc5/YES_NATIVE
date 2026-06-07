@@ -107,9 +107,19 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                       ClipRRect(
                         borderRadius: BorderRadius.circular(16),
                         child: Image.asset(
-                          'assets/images/logo.png',
-                          width: 200,
+                          'assets/images/FOODS.png',
+                          width: 220,
                           fit: BoxFit.contain,
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                      Text(
+                        'Functional Superfoods',
+                        style: GoogleFonts.poppins(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.white.withValues(alpha: 0.95),
+                          letterSpacing: 2.2,
                         ),
                       ),
                       const SizedBox(height: 36),
