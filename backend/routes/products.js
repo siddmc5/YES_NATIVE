@@ -3,7 +3,23 @@ const router = express.Router();
 const authMiddleware = require('../middleware/auth');
 const Product = require('../models/Product');
 
-// All product routes require authentication
+/**
+ * GET /api/products/public
+ *
+ * Returns all active products for customers to browse.
+ * No authentication required.
+ */
+router.get('/public', async (req, res) => {
+  try {
+    const products = await Product.find({ isActive: true }).sort({ createdAt: -1 });
+    res.json(products);
+  } catch (err) {
+    console.error('❌ Get public products error:', err.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// All subsequent product routes require authentication
 router.use(authMiddleware);
 
 /**

@@ -1,36 +1,26 @@
 {
   "project_info": {
-    "project_number": "141513367277",
-    "project_id": "native-app-26",
-    "storage_bucket": "native-app-26.firebasestorage.app"
+    "project_number": "550789388423",
+    "project_id": "yesnativeuser",
+    "storage_bucket": "yesnativeuser.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:141513367277:android:89895a74c9571b470ab6e4",
+        "mobilesdk_app_id": "1:550789388423:android:c3d4317fe232b3d0030022",
         "android_client_info": {
           "package_name": "com.example.yes_native_vendor"
         }
       },
-      "oauth_client": [
-        {
-          "client_id": "141513367277-u6khu8ui6cr23ppbp5envstvq3t8d4nh.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
+      "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyA_89xWLb8I6qh4L1bYe21zgeKWOV91fn4"
+          "current_key": "AIzaSyBBCgVtD1g_pfSyHhrCydvX9vpNeZhGiE0"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "141513367277-u6khu8ui6cr23ppbp5envstvq3t8d4nh.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
+          "other_platform_oauth_client": []
         }
       }
     }

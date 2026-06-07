@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'dart:html' as html;
+import 'dart:convert';
+import '../utils/download_helper.dart';
 import '../theme.dart';
 import '../models/models.dart';
 import '../widgets/stat_card.dart';
@@ -62,12 +63,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     buffer.writeln('Sample data,General,0,In Stock');
 
     final csv = buffer.toString();
-    final blob = html.Blob([csv], 'text/csv');
-    final url = html.Url.createObjectUrlFromBlob(blob);
-    html.AnchorElement(href: url)
-      ..setAttribute('download', 'sales_report.csv')
-      ..click();
-    html.Url.revokeObjectUrl(url);
+    final bytes = utf8.encode(csv);
+    downloadFile(bytes, 'sales_report.csv', 'text/csv');
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Sales report downloaded')),
@@ -336,7 +333,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           )
                         else
                           ..._recentOrders
-                              .map((order) => OrderTile(order: order, compact: true)),
+                              .map((order) => OrderTile(order: order, compact: true, onChanged: () => setState(() {}))),
                         const SizedBox(height: 30),
                       ],
                     ),

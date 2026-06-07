@@ -53,7 +53,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                     else
                       ..._manager.pending
                           .map((order) => OrderTile(
-                              order: order, compact: false)),
+                              order: order, compact: false, onChanged: () => setState(() {}))),
                     const SizedBox(height: 24),
 
                     // Processing / Shipped
@@ -66,13 +66,13 @@ class _OrdersScreenState extends State<OrdersScreen> {
                     else ...[
                       ..._manager.processing
                           .map((order) => OrderTile(
-                              order: order, compact: false)),
+                              order: order, compact: false, onChanged: () => setState(() {}))),
                       ..._manager.shipped
                           .map((order) => OrderTile(
-                              order: order, compact: false)),
+                              order: order, compact: false, onChanged: () => setState(() {}))),
                       ..._manager.delivered
                           .map((order) => OrderTile(
-                              order: order, compact: false)),
+                              order: order, compact: false, onChanged: () => setState(() {}))),
                     ],
                     const SizedBox(height: 24),
 
@@ -84,7 +84,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                     else
                       ..._manager.completed
                           .map((order) => OrderTile(
-                              order: order, compact: false)),
+                              order: order, compact: false, onChanged: () => setState(() {}))),
                     const SizedBox(height: 24),
 
                     // Cancelled Orders
@@ -95,7 +95,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                     else
                       ..._manager.cancelled
                           .map((order) => OrderTile(
-                              order: order, compact: false)),
+                              order: order, compact: false, onChanged: () => setState(() {}))),
                     const SizedBox(height: 24),
                   ],
                 ),

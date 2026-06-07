@@ -1,4 +1,5 @@
-import 'dart:html' as html;
+import 'dart:convert';
+import '../utils/download_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:excel/excel.dart' as excel_pkg hide Border;
 import '../theme.dart';
@@ -18,12 +19,8 @@ class AnalyticsScreen extends StatelessWidget {
     }
 
     final csv = buffer.toString();
-    final blob = html.Blob([csv], 'text/csv');
-    final url = html.Url.createObjectUrlFromBlob(blob);
-    html.AnchorElement(href: url)
-      ..setAttribute('download', 'transactions.csv')
-      ..click();
-    html.Url.revokeObjectUrl(url);
+    final bytes = utf8.encode(csv);
+    downloadFile(bytes, 'transactions.csv', 'text/csv');
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Downloaded')),
@@ -64,12 +61,7 @@ class AnalyticsScreen extends StatelessWidget {
     final bytes = excel.save();
     if (bytes == null) return;
 
-    final blob = html.Blob([bytes], 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    final url = html.Url.createObjectUrlFromBlob(blob);
-    html.AnchorElement(href: url)
-      ..setAttribute('download', 'transactions.xlsx')
-      ..click();
-    html.Url.revokeObjectUrl(url);
+    downloadFile(bytes, 'transactions.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Downloaded')),

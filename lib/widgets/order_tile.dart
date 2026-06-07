@@ -6,8 +6,9 @@ import '../services/order_manager.dart';
 class OrderTile extends StatelessWidget {
   final OrderModel order;
   final bool compact;
+  final VoidCallback? onChanged;
 
-  const OrderTile({super.key, required this.order, required this.compact});
+  const OrderTile({super.key, required this.order, required this.compact, this.onChanged});
 
   Color _statusColor(OrderStatus status, ThemeColors colors) {
     switch (status) {
@@ -211,10 +212,12 @@ class OrderTile extends StatelessWidget {
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).hideCurrentSnackBar();
                                 }
+                                onChanged?.call();
                               }),
                               duration: const Duration(seconds: 5),
                             ));
                           }
+                          onChanged?.call();
                         },
                         style: OutlinedButton.styleFrom(
                           side: BorderSide(color: colors.error),
@@ -238,6 +241,7 @@ class OrderTile extends StatelessWidget {
                                 const SnackBar(
                                     content: Text('Order accepted, now processing')));
                           }
+                          onChanged?.call();
                         },
                         style: ElevatedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 8)),
@@ -260,6 +264,7 @@ class OrderTile extends StatelessWidget {
                                 const SnackBar(
                                     content: Text('Order moved to shipped')));
                           }
+                          onChanged?.call();
                         },
                         style: ElevatedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 8)),
@@ -282,6 +287,7 @@ class OrderTile extends StatelessWidget {
                                 const SnackBar(
                                     content: Text('Order moved to delivered')));
                           }
+                          onChanged?.call();
                         },
                         style: ElevatedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 8)),
@@ -303,6 +309,7 @@ class OrderTile extends StatelessWidget {
                             ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(content: Text('Order completed')));
                           }
+                          onChanged?.call();
                         },
                         style: ElevatedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 8)),
