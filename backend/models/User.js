@@ -42,6 +42,8 @@ const userSchema = new mongoose.Schema(
         isDefault: { type: Boolean, default: false },
       },
     ],
+    // For push notifications
+    fcmToken: { type: String, default: '' },
   },
   { timestamps: true } // adds createdAt, updatedAt
 );

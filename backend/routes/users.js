@@ -35,6 +35,7 @@ router.put('/me', authMiddleware, async (req, res) => {
       'businessName',
       'phone',
       'address',
+      'fcmToken',
     ];
 
     const updates = {};

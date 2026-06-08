@@ -62,11 +62,45 @@ async function start() {
     console.warn('⚠️  Firebase Auth disabled — API routes requiring auth will return 503.');
   }
 
-  // 3. Start listening
-  app.listen(PORT, () => {
+  // 3. Setup Socket.io
+  const http = require('http');
+  const { Server } = require('socket.io');
+  const server = http.createServer(app);
+  
+  const io = new Server(server, {
+    cors: {
+      origin: corsOrigin,
+      methods: ["GET", "POST", "PUT", "PATCH", "DELETE"]
+    }
+  });
+
+  io.on('connection', (socket) => {
+    console.log(`🔌 Client connected: ${socket.id}`);
+    
+    // Clients can join rooms based on their user ID or vendor role to receive targeted updates
+    socket.on('join_user_room', (userId) => {
+      socket.join(`user_${userId}`);
+      console.log(`User ${userId} joined room user_${userId}`);
+    });
+    
+    socket.on('join_vendor_room', () => {
+      socket.join('vendors');
+      console.log('A vendor joined the vendors room');
+    });
+
+    socket.on('disconnect', () => {
+      console.log(`🔌 Client disconnected: ${socket.id}`);
+    });
+  });
+
+  // Make io accessible in our routes
+  app.set('io', io);
+
+  // 4. Start listening using the HTTP server instead of Express app
+  server.listen(PORT, () => {
     console.log(`
 ╔══════════════════════════════════════════════════════╗
-║  Yes Native Backend Server                          ║
+║  Yes Native Backend Server + WebSockets             ║
 ║  Running on http://localhost:${PORT.toString().padEnd(5)}              ║
 ║  Health: http://localhost:${PORT.toString().padEnd(5)}/api/health     ║
 ╚══════════════════════════════════════════════════════╝

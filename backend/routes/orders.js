@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const authMiddleware = require('../middleware/auth');
 const Order = require('../models/Order');
+const User = require('../models/User');
+const { sendPushNotification } = require('../services/notification_service');
 
 // All order routes require authentication
 router.use(authMiddleware);
@@ -94,6 +96,22 @@ router.put('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Order not found' });
     }
 
+    // Real-time: Emit socket event to the specific customer
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`user_${order.customerUid}`).emit('order_updated', order);
+    }
+
+    // Push Notification: Send to customer
+    const customer = await User.findOne({ uid: order.customerUid });
+    if (customer && customer.fcmToken) {
+      await sendPushNotification(
+        customer.fcmToken, 
+        'Order Update', 
+        `Your order ${order.orderId} is now ${status}!`
+      );
+    }
+
     res.json(order);
   } catch (err) {
     console.error('❌ Update order error:', err.message);
@@ -129,6 +147,22 @@ router.post('/', async (req, res) => {
       address: address || '',
       status: 'pending',
     });
+
+    // Real-time: Emit to all vendors
+    const io = req.app.get('io');
+    if (io) {
+      io.to('vendors').emit('new_order', order);
+    }
+
+    // Push Notification: Send to vendor
+    const vendor = await User.findOne({ uid: order.vendorUid });
+    if (vendor && vendor.fcmToken) {
+      await sendPushNotification(
+        vendor.fcmToken, 
+        'New Order Received!', 
+        `You have a new order ${orderId} from ${order.customerName}`
+      );
+    }
 
     res.status(201).json(order);
   } catch (err) {
