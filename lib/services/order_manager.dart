@@ -1,7 +1,8 @@
+import 'package:flutter/foundation.dart';
 import '../models/models.dart';
 import 'api_service.dart';
 
-class OrderManager {
+class OrderManager extends ChangeNotifier {
   OrderManager._privateConstructor();
   static final OrderManager _instance = OrderManager._privateConstructor();
   factory OrderManager() => _instance;
@@ -15,6 +16,7 @@ class OrderManager {
   Future<void> loadOrders() async {
     final data = await ApiService.instance.getOrders();
     _orders = data.map((json) => _orderFromJson(json)).toList();
+    notifyListeners();
   }
 
   /// Accept an order (move to processing).

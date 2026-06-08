@@ -5,11 +5,64 @@ import 'package:excel/excel.dart' as excel_pkg hide Border;
 import '../theme.dart';
 import '../models/models.dart';
 
-class AnalyticsScreen extends StatelessWidget {
+import '../services/order_manager.dart';
+import '../services/api_service.dart';
+
+class AnalyticsScreen extends StatefulWidget {
   const AnalyticsScreen({super.key});
 
+  @override
+  State<AnalyticsScreen> createState() => _AnalyticsScreenState();
+}
+
+class _AnalyticsScreenState extends State<AnalyticsScreen> {
+  List<ProductModel> _products = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProducts();
+    OrderManager().addListener(_onOrdersChanged);
+  }
+
+  @override
+  void dispose() {
+    OrderManager().removeListener(_onOrdersChanged);
+    super.dispose();
+  }
+
+  void _onOrdersChanged() {
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _loadProducts() async {
+    try {
+      final data = await ApiService.instance.getProducts();
+      if (mounted) {
+        setState(() {
+          _products = data.map((json) => ProductModel(
+            id: json['_id'] as String? ?? json['id'] as String? ?? '',
+            name: json['name'] as String? ?? '',
+            category: json['category'] as String? ?? '',
+            price: (json['price'] as num?)?.toDouble() ?? 0,
+            stock: json['stock'] as int? ?? 0,
+            rating: (json['rating'] as num?)?.toDouble() ?? 0,
+            reviews: json['reviews'] as int? ?? 0,
+            tags: (json['tags'] as List<dynamic>?)?.cast<String>() ?? [],
+            isActive: json['isActive'] as bool? ?? true,
+            imageUrl: json['imageUrl'] as String? ?? '',
+          )).toList();
+          _isLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
   void _downloadCSV(BuildContext context) {
-    final orders = SampleData.orders;
+    final orders = OrderManager().orders;
     final buffer = StringBuffer();
     buffer.writeln('Order ID,Customer,Phone,Items,Total (₹),Status,Date,Address');
     for (final o in orders) {
@@ -28,7 +81,7 @@ class AnalyticsScreen extends StatelessWidget {
   }
 
   void _downloadExcel(BuildContext context) {
-    final orders = SampleData.orders;
+    final orders = OrderManager().orders;
     final excel = excel_pkg.Excel.createExcel();
     final sheet = excel['Transactions'];
 
@@ -71,6 +124,56 @@ class AnalyticsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final orders = OrderManager().orders;
+    
+    // Compute Real Data Analytics
+    double totalRevenue = 0;
+    for (var o in orders) {
+      if (o.status == OrderStatus.completed || o.status == OrderStatus.delivered) {
+        totalRevenue += o.total;
+      }
+    }
+
+    // Top Selling Products (computed from orders)
+    Map<String, int> productSales = {};
+    for (var o in orders) {
+      if (o.status == OrderStatus.completed || o.status == OrderStatus.delivered || o.status == OrderStatus.shipped) {
+        for (var item in o.items) {
+          productSales[item.productName] = (productSales[item.productName] ?? 0) + item.quantity;
+        }
+      }
+    }
+    
+    var sortedProducts = productSales.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+    var topSelling = sortedProducts.take(4).map((entry) {
+      // Find matching product model or create a dummy one for UI
+      var p = _products.firstWhere((p) => p.name == entry.key, 
+          orElse: () => ProductModel(id: '', name: entry.key, category: 'Uncategorized', price: 0, stock: 0, rating: 0, reviews: 0, tags: [], isActive: true, imageUrl: ''));
+      return {'product': p, 'sales': entry.value};
+    }).toList();
+
+    // Sales by Category
+    Map<String, double> categorySales = {};
+    for (var o in orders) {
+      if (o.status == OrderStatus.completed || o.status == OrderStatus.delivered || o.status == OrderStatus.shipped) {
+        for (var item in o.items) {
+          var p = _products.firstWhere((p) => p.name == item.productName, orElse: () => ProductModel(id: '', name: '', category: 'Other', price: 0, stock: 0, rating: 0, reviews: 0, tags: [], isActive: true, imageUrl: ''));
+          categorySales[p.category] = (categorySales[p.category] ?? 0) + (item.quantity * item.price);
+        }
+      }
+    }
+    
+    double totalCatRevenue = categorySales.values.fold(0, (a, b) => a + b);
+    var sortedCategories = categorySales.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+    var topCategories = sortedCategories.take(4).toList();
+
+    int newCustomers = orders.map((o) => o.customerPhone).toSet().length;
+    int totalCustomers = orders.length;
+    double repeatBuyersRate = totalCustomers > 0 ? ((totalCustomers - newCustomers) / totalCustomers * 100) : 0;
+    
+    int returnCount = orders.where((o) => o.status == OrderStatus.cancelled).length;
+    double returnRate = orders.isNotEmpty ? (returnCount / orders.length * 100) : 0;
+    double avgOrderValue = orders.isNotEmpty ? (orders.map((o) => o.total).fold(0.0, (a, b) => a + b) / orders.length) : 0;
     return Scaffold(
       backgroundColor: colors.background,
       appBar: AppBar(
@@ -123,7 +226,7 @@ class AnalyticsScreen extends StatelessWidget {
                     children: [
                       Text('Revenue Trend',
                           style: AppTextStyles.heading3.copyWith(color: colors.textDark)),
-                      Text('₹2,84,500',
+                      Text('₹${totalRevenue.toStringAsFixed(0)}',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
@@ -158,17 +261,27 @@ class AnalyticsScreen extends StatelessWidget {
             // Top products
             Text('Top Selling Products', style: AppTextStyles.heading2.copyWith(color: colors.textDark)),
             const SizedBox(height: 14),
-            ...SampleData.products
-                .where((p) => p.isActive)
-                .take(4)
-                .toList()
-                .asMap()
-                .entries
-                .map((e) => _TopProductTile(
-                      rank: e.key + 1,
-                      product: e.value,
-                      colors: colors,
-                    )),
+            if (_isLoading)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 20),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else if (topSelling.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                child: Text('No sales data available yet.', style: TextStyle(color: colors.textMedium, fontFamily: 'Poppins')),
+              )
+            else
+              ...topSelling.asMap().entries.map((e) {
+                final product = e.value['product'] as ProductModel;
+                final sales = e.value['sales'] as int;
+                return _TopProductTile(
+                  rank: e.key + 1,
+                  product: product,
+                  sales: sales,
+                  colors: colors,
+                );
+              }),
             const SizedBox(height: 20),
 
             // Recent Transactions + Export buttons
@@ -197,8 +310,13 @@ class AnalyticsScreen extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            ...SampleData.orders
-                .map((order) => _TransactionTile(order: order, colors: colors)),
+            if (orders.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                child: Text('No transactions yet.', style: TextStyle(color: colors.textMedium, fontFamily: 'Poppins')),
+              )
+            else
+              ...orders.take(5).map((order) => _TransactionTile(order: order, colors: colors)),
             const SizedBox(height: 20),
 
             // Sales by category
@@ -214,29 +332,26 @@ class AnalyticsScreen extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  _CategoryBar(
-                      label: 'Weight Management',
-                      percent: 0.35,
-                      color: colors.primary,
-                      colors: colors),
-                  const SizedBox(height: 12),
-                  _CategoryBar(
-                      label: 'Family Health',
-                      percent: 0.28,
-                      color: colors.secondary,
-                      colors: colors),
-                  const SizedBox(height: 12),
-                  _CategoryBar(
-                      label: "Women's Wellness",
-                      percent: 0.20,
-                      color: const Color(0xFF9C27B0),
-                      colors: colors),
-                  const SizedBox(height: 12),
-                  _CategoryBar(
-                      label: 'Daily Energy',
-                      percent: 0.17,
-                      color: const Color(0xFF2196F3),
-                      colors: colors),
+                  if (_isLoading)
+                    const Center(child: CircularProgressIndicator())
+                  else if (topCategories.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 20),
+                      child: Text('No category data available yet.', style: TextStyle(color: colors.textMedium, fontFamily: 'Poppins')),
+                    )
+                  else
+                    ...topCategories.map((e) {
+                      final percent = totalCatRevenue > 0 ? e.value / totalCatRevenue : 0.0;
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _CategoryBar(
+                          label: e.key.isEmpty ? 'Other' : e.key,
+                          percent: percent,
+                          color: colors.primary,
+                          colors: colors,
+                        ),
+                      );
+                    }),
                 ],
               ),
             ),
@@ -251,8 +366,8 @@ class AnalyticsScreen extends StatelessWidget {
                 Expanded(
                   child: _MetricCard(
                     label: 'Avg Order Value',
-                    value: '₹912',
-                    change: '+8.2%',
+                    value: '₹${avgOrderValue.toStringAsFixed(0)}',
+                    change: '',
                     isPositive: true,
                     colors: colors,
                   ),
@@ -261,9 +376,9 @@ class AnalyticsScreen extends StatelessWidget {
                 Expanded(
                   child: _MetricCard(
                     label: 'Return Rate',
-                    value: '2.1%',
-                    change: '-0.3%',
-                    isPositive: true,
+                    value: '${returnRate.toStringAsFixed(1)}%',
+                    change: '',
+                    isPositive: false,
                     colors: colors,
                   ),
                 ),
@@ -274,9 +389,9 @@ class AnalyticsScreen extends StatelessWidget {
               children: [
                 Expanded(
                   child: _MetricCard(
-                    label: 'New Customers',
-                    value: '147',
-                    change: '+22%',
+                    label: 'Unique Customers',
+                    value: '$newCustomers',
+                    change: '',
                     isPositive: true,
                     colors: colors,
                   ),
@@ -285,8 +400,8 @@ class AnalyticsScreen extends StatelessWidget {
                 Expanded(
                   child: _MetricCard(
                     label: 'Repeat Buyers',
-                    value: '63%',
-                    change: '+5%',
+                    value: '${repeatBuyersRate.toStringAsFixed(1)}%',
+                    change: '',
                     isPositive: true,
                     colors: colors,
                   ),
@@ -352,11 +467,13 @@ class _Bar extends StatelessWidget {
 class _TopProductTile extends StatelessWidget {
   final int rank;
   final ProductModel product;
+  final int sales;
   final ThemeColors colors;
 
   const _TopProductTile({
     required this.rank,
     required this.product,
+    required this.sales,
     required this.colors,
   });
 
@@ -414,7 +531,7 @@ class _TopProductTile extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                '₹${(product.price * product.reviews * 0.3).toStringAsFixed(0)}',
+                '₹${(product.price * sales).toStringAsFixed(0)}',
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
@@ -422,7 +539,7 @@ class _TopProductTile extends StatelessWidget {
                   fontFamily: 'Poppins',
                 ),
               ),
-              Text('${product.reviews} sold',
+              Text('$sales sold',
                   style: TextStyle(
                       color: colors.textLight,
                       fontSize: 11,
@@ -638,25 +755,26 @@ class _MetricCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 4),
-          Row(
-            children: [
-              Icon(
-                isPositive ? Icons.arrow_upward : Icons.arrow_downward,
-                size: 12,
-                color: isPositive ? colors.success : colors.error,
-              ),
-              const SizedBox(width: 2),
-              Text(
-                change,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
+          if (change.isNotEmpty)
+            Row(
+              children: [
+                Icon(
+                  isPositive ? Icons.arrow_upward : Icons.arrow_downward,
+                  size: 12,
                   color: isPositive ? colors.success : colors.error,
-                  fontFamily: 'Poppins',
                 ),
-              ),
-            ],
-          ),
+                const SizedBox(width: 2),
+                Text(
+                  change,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: isPositive ? colors.success : colors.error,
+                    fontFamily: 'Poppins',
+                  ),
+                ),
+              ],
+            ),
         ],
       ),
     );

@@ -5,6 +5,7 @@ import 'orders_screen.dart';
 import 'products_screen.dart';
 import 'analytics_screen.dart';
 import 'profile_screen.dart';
+import '../services/order_manager.dart';
 
 class MainShellController {
   static void Function(int)? setIndex;
@@ -83,14 +84,22 @@ class _MainShellState extends State<MainShell> {
                   onTap: () => setState(() => _currentIndex = 0),
                   colors: colors,
                 ),
-                _NavItem(
-                  icon: Icons.receipt_long_outlined,
-                  activeIcon: Icons.receipt_long_rounded,
-                  label: 'Orders',
-                  isActive: _currentIndex == 1,
-                  onTap: () => setState(() => _currentIndex = 1),
-                  badge: '5',
-                  colors: colors,
+                AnimatedBuilder(
+                  animation: OrderManager(),
+                  builder: (context, _) {
+                    final activeCount = OrderManager().pending.length + 
+                                        OrderManager().processing.length + 
+                                        OrderManager().shipped.length;
+                    return _NavItem(
+                      icon: Icons.receipt_long_outlined,
+                      activeIcon: Icons.receipt_long_rounded,
+                      label: 'Orders',
+                      isActive: _currentIndex == 1,
+                      onTap: () => setState(() => _currentIndex = 1),
+                      badge: activeCount > 0 ? activeCount.toString() : null,
+                      colors: colors,
+                    );
+                  }
                 ),
                 _NavItem(
                   icon: Icons.inventory_2_outlined,
