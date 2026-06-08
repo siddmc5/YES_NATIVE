@@ -25,11 +25,13 @@ router.use(authMiddleware);
 /**
  * GET /api/products
  *
- * Returns all products for the authenticated vendor.
+ * Returns all products for the authenticated vendor, plus default ones.
  */
 router.get('/', async (req, res) => {
   try {
-    const products = await Product.find({ vendorUid: req.user.uid }).sort({ createdAt: -1 });
+    const products = await Product.find({
+      $or: [{ vendorUid: req.user.uid }, { vendorUid: 'DEFAULT_VENDOR' }]
+    }).sort({ createdAt: -1 });
     res.json(products);
   } catch (err) {
     console.error('❌ Get products error:', err.message);

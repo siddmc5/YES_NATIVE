@@ -19,6 +19,8 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
   String _storePhone = '';
   String _storeAddress = '';
   String _storeDescription = '';
+  int _productsCount = 0;
+  int _ordersCount = 0;
   bool _isLoading = true;
 
   @override
@@ -31,6 +33,8 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
     setState(() => _isLoading = true);
     try {
       final profile = await ApiService.instance.getProfile();
+      final products = await ApiService.instance.getProducts();
+      final orders = await ApiService.instance.getOrders();
       if (profile != null) {
         setState(() {
           _storeName = profile['businessName'] as String? ?? profile['displayName'] as String? ?? 'Yes Native Store';
@@ -38,6 +42,8 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
           _storePhone = profile['phone'] as String? ?? '';
           _storeAddress = profile['address'] as String? ?? '';
           _storeDescription = 'Premium traditional superfoods and wellness products.';
+          _productsCount = products.length;
+          _ordersCount = orders.length;
         });
       }
     } catch (_) {
@@ -48,6 +54,8 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
         _storePhone = '+91 98765 43210';
         _storeAddress = '12, MG Road, Bengaluru - 560001';
         _storeDescription = 'Premium traditional superfoods and wellness products since 2020.';
+        _productsCount = 0;
+        _ordersCount = 0;
       });
     }
     if (mounted) setState(() => _isLoading = false);
@@ -343,9 +351,9 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            _StoreStatPill(label: 'Products', value: '—', colors: colors),
+                            _StoreStatPill(label: 'Products', value: '$_productsCount', colors: colors),
                             const SizedBox(width: 12),
-                            _StoreStatPill(label: 'Orders', value: '—', colors: colors),
+                            _StoreStatPill(label: 'Orders', value: '$_ordersCount', colors: colors),
                             const SizedBox(width: 12),
                             _StoreStatPill(label: 'Status', value: 'Active', colors: colors),
                           ],
