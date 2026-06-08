@@ -136,20 +136,21 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
     // Top Selling Products (computed from orders)
     Map<String, int> productSales = {};
+    Map<String, double> productRevenue = {};
     for (var o in orders) {
       if (o.status == OrderStatus.completed || o.status == OrderStatus.delivered || o.status == OrderStatus.shipped) {
         for (var item in o.items) {
           productSales[item.productName] = (productSales[item.productName] ?? 0) + item.quantity;
+          productRevenue[item.productName] = (productRevenue[item.productName] ?? 0) + (item.quantity * item.price);
         }
       }
     }
     
     var sortedProducts = productSales.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
     var topSelling = sortedProducts.take(4).map((entry) {
-      // Find matching product model or create a dummy one for UI
       var p = _products.firstWhere((p) => p.name == entry.key, 
           orElse: () => ProductModel(id: '', name: entry.key, category: 'Uncategorized', price: 0, stock: 0, rating: 0, reviews: 0, tags: [], isActive: true, imageUrl: ''));
-      return {'product': p, 'sales': entry.value};
+      return {'product': p, 'sales': entry.value, 'revenue': productRevenue[entry.key] ?? 0.0};
     }).toList();
 
     // Sales by Category
@@ -174,6 +175,24 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     int returnCount = orders.where((o) => o.status == OrderStatus.cancelled).length;
     double returnRate = orders.isNotEmpty ? (returnCount / orders.length * 100) : 0;
     double avgOrderValue = orders.isNotEmpty ? (orders.map((o) => o.total).fold(0.0, (a, b) => a + b) / orders.length) : 0;
+
+    // Revenue Trend Chart Logic
+    final now = DateTime.now();
+    final monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final currentMonthLabel = '${monthNames[now.month - 1]} ${now.year}';
+    
+    List<double> weeklyRevenue = List.filled(5, 0.0);
+    for (var o in orders) {
+      if ((o.status == OrderStatus.completed || o.status == OrderStatus.delivered || o.status == OrderStatus.shipped) &&
+          o.createdAt.year == now.year && o.createdAt.month == now.month) {
+        int weekIndex = (o.createdAt.day - 1) ~/ 7;
+        if (weekIndex > 4) weekIndex = 4;
+        weeklyRevenue[weekIndex] += o.total;
+      }
+    }
+    double maxWeeklyRevenue = weeklyRevenue.reduce((a, b) => a > b ? a : b);
+    if (maxWeeklyRevenue == 0) maxWeeklyRevenue = 1;
+
     return Scaffold(
       backgroundColor: colors.background,
       appBar: AppBar(
@@ -236,7 +255,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     ],
                   ),
                   const SizedBox(height: 4),
-                  Text('May 2024',
+                  Text(currentMonthLabel,
                       style: TextStyle(color: colors.textLight, fontSize: 12, fontFamily: 'Poppins')),
                   const SizedBox(height: 20),
                   SizedBox(
@@ -245,11 +264,11 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                       crossAxisAlignment: CrossAxisAlignment.end,
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        _Bar(height: 0.4, label: 'W1', color: colors),
-                        _Bar(height: 0.65, label: 'W2', color: colors),
-                        _Bar(height: 0.5, label: 'W3', color: colors),
-                        _Bar(height: 0.9, label: 'W4', highlight: true, color: colors),
-                        _Bar(height: 0.7, label: 'W5', color: colors),
+                        _Bar(height: weeklyRevenue[0] / maxWeeklyRevenue, label: 'W1', color: colors),
+                        _Bar(height: weeklyRevenue[1] / maxWeeklyRevenue, label: 'W2', color: colors),
+                        _Bar(height: weeklyRevenue[2] / maxWeeklyRevenue, label: 'W3', color: colors),
+                        _Bar(height: weeklyRevenue[3] / maxWeeklyRevenue, label: 'W4', color: colors),
+                        _Bar(height: weeklyRevenue[4] / maxWeeklyRevenue, label: 'W5', color: colors),
                       ],
                     ),
                   ),
@@ -275,10 +294,12 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               ...topSelling.asMap().entries.map((e) {
                 final product = e.value['product'] as ProductModel;
                 final sales = e.value['sales'] as int;
+                final revenue = e.value['revenue'] as double;
                 return _TopProductTile(
                   rank: e.key + 1,
                   product: product,
                   sales: sales,
+                  revenue: revenue,
                   colors: colors,
                 );
               }),
@@ -468,12 +489,14 @@ class _TopProductTile extends StatelessWidget {
   final int rank;
   final ProductModel product;
   final int sales;
+  final double revenue;
   final ThemeColors colors;
 
   const _TopProductTile({
     required this.rank,
     required this.product,
     required this.sales,
+    required this.revenue,
     required this.colors,
   });
 
@@ -531,7 +554,7 @@ class _TopProductTile extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                '₹${(product.price * sales).toStringAsFixed(0)}',
+                '₹${revenue.toStringAsFixed(0)}',
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
