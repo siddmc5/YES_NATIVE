@@ -21,6 +21,7 @@ dependencies:
   firebase_auth: ^5.5.1
   google_sign_in: ^6.3.0
   http: ^1.3.0
+  flutter_animate: ^4.5.0
 
 dev_dependencies:
   flutter_test:
@@ -28,12 +29,13 @@ dev_dependencies:
   flutter_lints: ^3.0.0
   flutter_launcher_icons: ^0.13.1
 
-flutter_icons:
-  android: true
+flutter_launcher_icons:
+  android: "launcher_icon"
   ios: false
-  image_path: "assets/images/logo.png"
-  adaptive_icon_background: "#2C5E35"
-  adaptive_icon_foreground: "assets/images/leaf_logo.png"
+  image_path: "assets/images/nevarkfoods.png"
+  min_sdk_android: 21
+  adaptive_icon_background: "#000000"
+  adaptive_icon_foreground: "assets/images/nevarkfoods.png"
 
 flutter:
   uses-material-design: true

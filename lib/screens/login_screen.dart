@@ -6,6 +6,7 @@ import '../theme_provider.dart';
 import '../services/auth_service.dart';
 import '../services/api_service.dart';
 import 'main_shell.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -14,41 +15,9 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStateMixin {
+class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
   String? _errorMessage;
-  late final AnimationController _animController;
-  late final Animation<Offset> _slideAnim;
-  late final Animation<double> _fadeAnim;
-
-  @override
-  void initState() {
-    super.initState();
-    _animController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 800),
-    );
-    _slideAnim = Tween<Offset>(
-      begin: const Offset(0, 0.06),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _animController,
-      curve: Curves.easeOutCubic,
-    ));
-    _fadeAnim = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(
-        parent: _animController,
-        curve: const Interval(0, 0.5, curve: Curves.easeOut),
-      ),
-    );
-    _animController.forward();
-  }
-
-  @override
-  void dispose() {
-    _animController.dispose();
-    super.dispose();
-  }
 
   void _login() async {
     setState(() {
@@ -97,33 +66,14 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             width: double.infinity,
             child: SafeArea(
               bottom: false,
-              child: FadeTransition(
-                opacity: _fadeAnim,
-                child: SlideTransition(
-                  position: _slideAnim,
-                  child: Column(
-                    children: [
-                      const SizedBox(height: 40),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: Image.asset(
-                          'assets/images/FOODS.png',
-                          width: 220,
-                          fit: BoxFit.contain,
-                        ),
-                      ),
-                      const SizedBox(height: 32),
-                      Text(
-                        'Functional Superfoods',
-                        style: GoogleFonts.poppins(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.white.withValues(alpha: 0.95),
-                          letterSpacing: 2.2,
-                        ),
-                      ),
-                      const SizedBox(height: 36),
-                    ],
+              child: Align(
+                alignment: Alignment.topLeft,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 24, top: 24),
+                  child: Image.asset(
+                    'assets/images/nevarkfoods.png',
+                    width: 90,
+                    height: 90,
                   ),
                 ),
               ),
@@ -132,119 +82,118 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
 
           // Card Section
           Expanded(
-            child: FadeTransition(
-              opacity: _fadeAnim,
-              child: SlideTransition(
-                position: _slideAnim,
-                child: Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1A1A1A) : colors.background,
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(36),
-                      topRight: Radius.circular(36),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.06),
-                        blurRadius: 20,
-                        offset: const Offset(0, -4),
-                      ),
-                    ],
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 48),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Spacer(flex: 1),
-                      Text(
-                        'Welcome',
-                        style: GoogleFonts.poppins(
-                          fontSize: 35,
-                          fontWeight: FontWeight.w700,
-                          color: colors.primary,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Sign in to manage your orders and profile',
-                        style: GoogleFonts.poppins(
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w400,
-                          color: colors.textMedium,
-                        ),
-                      ),
-                      const Spacer(flex: 2),
-
-                      // Error message
-                      if (_errorMessage != null)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 16),
-                          child: Text(
-                            _errorMessage!,
-                            style: GoogleFonts.poppins(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: colors.error,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-
-                      // Google Sign-In Button
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton(
-                          onPressed: _isLoading ? null : _login,
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            side: BorderSide(
-                              color: colors.border,
-                              width: 1.2,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            backgroundColor: colors.cardBackground,
-                            elevation: 0,
-                          ),
-                          child: _isLoading
-                              ? SizedBox(
-                                  height: 24,
-                                  width: 24,
-                                  child: CircularProgressIndicator(
-                                    color: colors.primary,
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    SizedBox(
-                                      width: 22,
-                                      height: 22,
-                                      child: CustomPaint(
-                                        painter: _GoogleLogoPainter(),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 14),
-                                    Text(
-                                      'Continue with Google',
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                        color: colors.textDark,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                        ),
-                      ),
-                      const Spacer(flex: 1),
-                    ],
-                  ),
+            child: Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1A1A1A) : colors.background,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(36),
+                  topRight: Radius.circular(36),
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.06),
+                    blurRadius: 20,
+                    offset: const Offset(0, -4),
+                  ),
+                ],
               ),
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 48),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Spacer(flex: 1),
+                  Text(
+                    'Welcome',
+                    style: GoogleFonts.poppins(
+                      fontSize: 35,
+                      fontWeight: FontWeight.w700,
+                      color: colors.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Sign in to manage your orders and profile',
+                    style: GoogleFonts.poppins(
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w400,
+                      color: colors.textMedium,
+                    ),
+                  ),
+                  const Spacer(flex: 2),
+
+                  // Error message
+                  if (_errorMessage != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: Text(
+                        _errorMessage!,
+                        style: GoogleFonts.poppins(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: colors.error,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+
+                  // Google Sign-In Button
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: _isLoading ? null : _login,
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        side: BorderSide(
+                          color: colors.border,
+                          width: 1.2,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        backgroundColor: colors.cardBackground,
+                        elevation: 0,
+                      ),
+                      child: _isLoading
+                          ? SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: CircularProgressIndicator(
+                                color: colors.primary,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CustomPaint(
+                                    painter: _GoogleLogoPainter(),
+                                  ),
+                                ),
+                                const SizedBox(width: 14),
+                                Text(
+                                  'Continue with Google',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: colors.textDark,
+                                  ),
+                                ),
+                              ],
+                            ),
+                    ),
+                  ),
+                  const Spacer(flex: 1),
+                ],
+              ),
+            ).animate().slideY(
+              begin: 1.0, 
+              end: 0.0, 
+              duration: const Duration(milliseconds: 800), 
+              curve: Curves.easeOutQuart
             ),
           ),
         ],
