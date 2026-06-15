@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -18,10 +20,14 @@ class ApiService {
   ApiService._();
   static final ApiService instance = ApiService._();
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // TODO: Replace with your backend URL before deploying.
-  // ═══════════════════════════════════════════════════════════════════════
-  static const String baseUrl = 'http://localhost:3000/api';
+  static String get baseUrl {
+    if (kIsWeb) {
+      return 'http://localhost:3000/api';
+    } else if (Platform.isAndroid) {
+      return 'http://192.168.29.253:3000/api';
+    }
+    return 'http://192.168.29.253:3000/api';
+  }
 
   // ── Auth helpers ────────────────────────────────────────────────────────
 
