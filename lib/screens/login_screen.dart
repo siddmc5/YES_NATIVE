@@ -60,41 +60,52 @@ class _LoginScreenState extends State<LoginScreen> {
       backgroundColor: colors.bannerGreen,
       body: Column(
         children: [
-          // Green Header Section
-          Container(
-            color: colors.bannerGreen,
-            width: double.infinity,
+          // Top Half (Dark Green)
+          Expanded(
+            flex: 4,
             child: SafeArea(
               bottom: false,
-              child: Align(
-                alignment: Alignment.topLeft,
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 24, top: 24),
-                  child: Image.asset(
-                    'assets/images/nevarkfoods.png',
-                    width: 90,
-                    height: 90,
+              child: Stack(
+                children: [
+                  // Marquee of ingredients (always visible)
+                  const Align(
+                    alignment: Alignment.center,
+                    child: IngredientsMarquee(),
                   ),
-                ),
+
+                  // Logo at Top Left
+                  Align(
+                    alignment: Alignment.topLeft,
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 24, top: 24),
+                      child: Image.asset(
+                        'assets/images/nevarkfoods.png',
+                        width: 90,
+                        height: 90,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
 
-          // Card Section
+          // Bottom Half (Cream rounded container)
           Expanded(
+            flex: 6,
             child: Container(
               width: double.infinity,
-              decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF1A1A1A) : colors.background,
-                borderRadius: const BorderRadius.only(
+              decoration: const BoxDecoration(
+                color: Color(0xFFF9F6F0),
+                borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(36),
                   topRight: Radius.circular(36),
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.06),
+                    color: Colors.black12,
                     blurRadius: 20,
-                    offset: const Offset(0, -4),
+                    offset: Offset(0, -4),
                   ),
                 ],
               ),
@@ -110,7 +121,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       fontWeight: FontWeight.w700,
                       color: colors.primary,
                     ),
-                  ),
+                  ).animate().fadeIn(delay: 600.ms).slideX(begin: -0.1),
                   const SizedBox(height: 8),
                   Text(
                     'Sign in to manage your orders and profile',
@@ -119,7 +130,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       fontWeight: FontWeight.w400,
                       color: colors.textMedium,
                     ),
-                  ),
+                  ).animate().fadeIn(delay: 700.ms).slideX(begin: -0.1),
                   const Spacer(flex: 2),
 
                   // Error message
@@ -197,6 +208,58 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ── Ingredients Marquee ───────────────────────────────────────────────────────
+
+class IngredientsMarquee extends StatelessWidget {
+  const IngredientsMarquee({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final images = [
+      'assets/images/almonds_dates.png',
+      'assets/images/black_rice.png',
+      'assets/images/fresh_honey.png',
+      'assets/images/raw_millets.png',
+    ];
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      physics: const NeverScrollableScrollPhysics(),
+      child: Row(
+        children: [
+          ...images.map(_buildIngredientCard),
+          ...images.map(_buildIngredientCard),
+          ...images.map(_buildIngredientCard),
+        ],
+      ).animate(onPlay: (controller) => controller.repeat())
+       .slideX(begin: 0, end: -0.3333333, duration: const Duration(seconds: 15)),
+    );
+  }
+
+  Widget _buildIngredientCard(String path) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      width: 100,
+      height: 100,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.white10,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        image: DecorationImage(
+          image: AssetImage(path),
+          fit: BoxFit.cover,
+        ),
       ),
     );
   }
