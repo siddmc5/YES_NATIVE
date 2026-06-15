@@ -18,22 +18,36 @@ const fs = require('fs');
 function initFirebaseAdmin() {
   if (admin.apps.length > 0) return admin; // Already initialised
 
-  const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
-  if (!serviceAccountPath) {
-    console.warn('⚠️ FIREBASE_SERVICE_ACCOUNT_PATH not set in .env');
-    console.warn('   Firebase Auth will be unavailable. Set it up for production.');
-    return null;
+  let serviceAccount;
+
+  // 1. Try reading from environment variable (for Render/Cloud)
+  if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
+    try {
+      serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+      console.log('✅ Loaded Firebase credentials from environment variable');
+    } catch (err) {
+      console.error('❌ Failed to parse FIREBASE_SERVICE_ACCOUNT_JSON:', err.message);
+      return null;
+    }
+  } 
+  // 2. Fallback to local file path
+  else {
+    const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
+    if (!serviceAccountPath) {
+      console.warn('⚠️ FIREBASE_SERVICE_ACCOUNT_PATH not set in .env');
+      return null;
+    }
+
+    const resolvedPath = path.resolve(__dirname, '..', serviceAccountPath);
+
+    if (!fs.existsSync(resolvedPath)) {
+      console.warn(`⚠️ Firebase service account file not found at: ${resolvedPath}`);
+      return null;
+    }
+
+    serviceAccount = require(resolvedPath);
+    console.log('✅ Loaded Firebase credentials from local file');
   }
-
-  const resolvedPath = path.resolve(__dirname, '..', serviceAccountPath);
-
-  if (!fs.existsSync(resolvedPath)) {
-    console.warn(`⚠️ Firebase service account file not found at: ${resolvedPath}`);
-    console.warn('   Firebase Auth will be unavailable. Generate one in Firebase Console.');
-    return null;
-  }
-
-  const serviceAccount = require(resolvedPath);
 
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),

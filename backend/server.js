@@ -97,7 +97,7 @@ async function start() {
   app.set('io', io);
 
   // 4. Start listening using the HTTP server instead of Express app
-  server.listen(PORT, () => {
+  server.listen(PORT, '0.0.0.0', () => {
     console.log(`
 ╔══════════════════════════════════════════════════════╗
 ║  Yes Native Backend Server + WebSockets             ║

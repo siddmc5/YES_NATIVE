@@ -45,7 +45,7 @@ class _LoginScreenState extends State<LoginScreen> {
           _isLoading = false;
           _errorMessage = e.toString().contains('cancelled')
               ? null
-              : 'Sign in failed. Please try again.';
+              : 'Sign in failed: ${e.toString()}';
         });
       }
     }

@@ -24,9 +24,9 @@ class ApiService {
     if (kIsWeb) {
       return 'http://localhost:3000/api';
     } else if (Platform.isAndroid) {
-      return 'http://192.168.29.253:3000/api';
+      return 'http://172.16.215.255:3000/api';
     }
-    return 'http://192.168.29.253:3000/api';
+    return 'http://172.16.215.255:3000/api';
   }
 
   // ── Auth helpers ────────────────────────────────────────────────────────
