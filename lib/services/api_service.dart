@@ -21,12 +21,7 @@ class ApiService {
   static final ApiService instance = ApiService._();
 
   static String get baseUrl {
-    if (kIsWeb) {
-      return 'http://localhost:3000/api';
-    } else if (Platform.isAndroid) {
-      return 'http://172.16.215.255:3000/api';
-    }
-    return 'http://172.16.215.255:3000/api';
+    return 'https://nevarkfood-backend.onrender.com/api';
   }
 
   // ── Auth helpers ────────────────────────────────────────────────────────
